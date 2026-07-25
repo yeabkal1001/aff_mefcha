@@ -1,0 +1,469 @@
+# Instincts generated from https://github.com/yeabkal1001/aff_mefcha
+# Generated: 2026-07-25T21:26:12.918Z
+# Version: 2.0
+# NOTE: This file supplements (does not replace) any existing curated instincts.
+# High-confidence manually curated instincts should be preserved alongside these.
+
+---
+id: aff_mefcha-commit-length
+trigger: "when writing a commit message"
+confidence: 0.6
+domain: git
+source: repo-analysis
+source_repo: https://github.com/yeabkal1001/aff_mefcha
+---
+
+# Aff_mefcha Commit Length
+
+## Action
+
+Write moderate-length commit messages (~69 characters)
+
+## Evidence
+
+- Average commit message length: 69 chars
+- Based on 8 commits
+
+---
+id: aff_mefcha-naming-files
+trigger: "when creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/yeabkal1001/aff_mefcha
+---
+
+# Aff_mefcha Naming Files
+
+## Action
+
+Use kebab-case naming convention
+
+## Evidence
+
+- Analyzed file naming patterns in repository
+- Dominant pattern: kebab-case
+
+---
+id: aff_mefcha-import-alias
+trigger: "when importing modules"
+confidence: 0.85
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/yeabkal1001/aff_mefcha
+---
+
+# Aff_mefcha Import Alias
+
+## Action
+
+Use path aliases (@/, ~/) instead of relative imports
+
+## Evidence
+
+- Import analysis shows alias pattern
+- Example: import { x } from '@/lib/x'
+
+---
+id: aff_mefcha-export-style
+trigger: "when exporting from a module"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/yeabkal1001/aff_mefcha
+---
+
+# Aff_mefcha Export Style
+
+## Action
+
+Prefer mixed exports
+
+## Evidence
+
+- Export pattern analysis
+- Dominant style: mixed
+
+---
+id: aff_mefcha-test-separate
+trigger: "when writing tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/yeabkal1001/aff_mefcha
+---
+
+# Aff_mefcha Test Separate
+
+## Action
+
+Place tests in the tests/ or __tests__/ directory, mirroring src structure
+
+## Evidence
+
+- Separate test directory pattern detected
+- Tests live in dedicated test folders
+
+---
+id: aff_mefcha-workflow-feature-development-with-component-and-hook-integration
+trigger: "when doing feature development with component and hook integration"
+confidence: 0.65
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/yeabkal1001/aff_mefcha
+---
+
+# Aff_mefcha Workflow Feature Development With Component And Hook Integration
+
+## Action
+
+Follow the feature-development-with-component-and-hook-integration workflow:
+1. Create or update React components in client/components/[feature]/
+2. Create or update hooks in client/hooks/
+3. Update or create page files in client/app/[feature]/page.tsx
+4. Update mock data in client/lib/mock-data.ts
+5. Update global styles in client/app/globals.css if needed
+6. Update main layout or sidebar in client/app/layout.tsx or client/components/sidebar/
+7. Update README or documentation as needed
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~3x per month
+- Files: client/app/[feature]/page.tsx, client/components/[feature]/*.tsx, client/hooks/*.ts
+
+---
+id: aff_mefcha-workflow-onboarding-flow-extension-or-refactor
+trigger: "when doing onboarding flow extension or refactor"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/yeabkal1001/aff_mefcha
+---
+
+# Aff_mefcha Workflow Onboarding Flow Extension Or Refactor
+
+## Action
+
+Follow the onboarding-flow-extension-or-refactor workflow:
+1. Add or update step components in client/components/onboarding/steps/
+2. Update onboarding logic in client/hooks/use-onboarding-draft.ts and/or client/lib/onboarding.ts
+3. Update onboarding page at client/app/onboarding/page.tsx
+4. Update or expand mock data in client/lib/mock-data.ts
+5. Update documentation in docs/product/onboarding.md and client/README.md
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: client/components/onboarding/steps/*.ts*, client/hooks/use-onboarding-draft.ts, client/lib/onboarding.ts
+
+---
+id: aff_mefcha-workflow-ui-library-or-component-batch-integration
+trigger: "when doing ui library or component batch integration"
+confidence: 0.55
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/yeabkal1001/aff_mefcha
+---
+
+# Aff_mefcha Workflow Ui Library Or Component Batch Integration
+
+## Action
+
+Follow the ui-library-or-component-batch-integration workflow:
+1. Add new UI component files to client/components/ui/
+2. Update or add entries in client/package.json
+3. Update global styles in client/app/globals.css if needed
+4. Update or add to client/components.json or similar registry
+5. Update lockfile (pnpm-lock.yaml) if dependencies change
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~1x per month
+- Files: client/components/ui/*.tsx, client/package.json, client/app/globals.css
+
+---
+id: aff_mefcha-workflow-feature-enhancement-and-documentation-update
+trigger: "when doing feature enhancement and documentation update"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/yeabkal1001/aff_mefcha
+---
+
+# Aff_mefcha Workflow Feature Enhancement And Documentation Update
+
+## Action
+
+Follow the feature-enhancement-and-documentation-update workflow:
+1. Update or refactor existing components in client/components/[feature]/
+2. Update or refactor hooks in client/hooks/
+3. Update or refactor page files in client/app/[feature]/page.tsx
+4. Update or expand mock data in client/lib/mock-data.ts
+5. Update related documentation in docs/ and client/README.md
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: client/components/[feature]/*.tsx, client/hooks/*.ts, client/app/[feature]/page.tsx
+
+---
+id: aff_mefcha-coding-filename-kebab-case
+trigger: "When creating a new file in the codebase"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: yeabkal1001/aff_mefcha
+---
+
+# Aff_mefcha Coding Filename Kebab Case
+
+## Action
+
+Name the file using kebab-case (e.g., my-component.tsx)
+
+## Evidence
+
+- Pattern in codeStyle.namingConventions.files
+- All files in client/components/ and client/hooks/ use kebab-case
+
+---
+id: aff_mefcha-coding-function-camelCase
+trigger: "When defining a new function"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: yeabkal1001/aff_mefcha
+---
+
+# Aff_mefcha Coding Function CamelCase
+
+## Action
+
+Use camelCase for the function name
+
+## Evidence
+
+- Pattern in codeStyle.namingConventions.functions
+- Functions in client/hooks/ and client/lib/ use camelCase
+
+---
+id: aff_mefcha-coding-class-PascalCase
+trigger: "When defining a new class or React component"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: yeabkal1001/aff_mefcha
+---
+
+# Aff_mefcha Coding Class PascalCase
+
+## Action
+
+Use PascalCase for the class or component name
+
+## Evidence
+
+- Pattern in codeStyle.namingConventions.classes
+- React components in client/components/ use PascalCase
+
+---
+id: aff_mefcha-coding-constant-SCREAMING_SNAKE_CASE
+trigger: "When defining a constant"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: yeabkal1001/aff_mefcha
+---
+
+# Aff_mefcha Coding Constant SCREAMING_SNAKE_CASE
+
+## Action
+
+Use SCREAMING_SNAKE_CASE for constant names
+
+## Evidence
+
+- Pattern in codeStyle.namingConventions.constants
+
+---
+id: aff_mefcha-coding-import-alias
+trigger: "When importing modules"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: yeabkal1001/aff_mefcha
+---
+
+# Aff_mefcha Coding Import Alias
+
+## Action
+
+Use import aliases instead of relative paths where possible
+
+## Evidence
+
+- Pattern in codeStyle.importStyle
+- Imports in client/components/ and client/hooks/ use aliases
+
+---
+id: aff_mefcha-coding-export-mixed
+trigger: "When exporting modules"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: yeabkal1001/aff_mefcha
+---
+
+# Aff_mefcha Coding Export Mixed
+
+## Action
+
+Use both default and named exports as appropriate
+
+## Evidence
+
+- Pattern in codeStyle.exportStyle
+- Mixed export usage in client/components/
+
+---
+id: aff_mefcha-testing-separate-location
+trigger: "When adding tests for a module"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: yeabkal1001/aff_mefcha
+---
+
+# Aff_mefcha Testing Separate Location
+
+## Action
+
+Place test files in a separate test directory, not alongside source files
+
+## Evidence
+
+- Pattern in architecture.folderStructure.testLocation = 'separate'
+
+---
+id: aff_mefcha-git-commit-freeform
+trigger: "When writing a commit message"
+confidence: 0.9
+domain: git
+source: repo-analysis
+source_repo: yeabkal1001/aff_mefcha
+---
+
+# Aff_mefcha Git Commit Freeform
+
+## Action
+
+Use a freeform, descriptive commit message without a strict prefix
+
+## Evidence
+
+- Pattern in commits.type = 'freeform'
+- Examples: 'Build the practice screen from the Figma design'
+
+---
+id: aff_mefcha-git-commit-average-length
+trigger: "When writing a commit message"
+confidence: 0.7
+domain: git
+source: repo-analysis
+source_repo: yeabkal1001/aff_mefcha
+---
+
+# Aff_mefcha Git Commit Average Length
+
+## Action
+
+Aim for a commit message length around 69 characters
+
+## Evidence
+
+- Pattern in commits.averageLength = 69
+
+---
+id: aff_mefcha-workflow-feature-development
+trigger: "When adding a new interactive feature or screen to the app"
+confidence: 0.95
+domain: workflow
+source: repo-analysis
+source_repo: yeabkal1001/aff_mefcha
+---
+
+# Aff_mefcha Workflow Feature Development
+
+## Action
+
+Create/update components in client/components/[feature]/, hooks in client/hooks/, page files in client/app/[feature]/page.tsx, mock data in client/lib/mock-data.ts, global styles in client/app/globals.css, main layout/sidebar, and update README/documentation as needed
+
+## Evidence
+
+- Workflow: feature-development-with-component-and-hook-integration
+- Example commit sequences and files
+
+---
+id: aff_mefcha-workflow-onboarding-extension
+trigger: "When extending or refactoring the onboarding flow"
+confidence: 0.92
+domain: workflow
+source: repo-analysis
+source_repo: yeabkal1001/aff_mefcha
+---
+
+# Aff_mefcha Workflow Onboarding Extension
+
+## Action
+
+Add/update step components in client/components/onboarding/steps/, update onboarding logic in client/hooks/use-onboarding-draft.ts and/or client/lib/onboarding.ts, update onboarding page, mock data, and documentation
+
+## Evidence
+
+- Workflow: onboarding-flow-extension-or-refactor
+- Example commit sequences and files
+
+---
+id: aff_mefcha-workflow-ui-library-integration
+trigger: "When integrating a new UI library or batch of shared UI components"
+confidence: 0.88
+domain: workflow
+source: repo-analysis
+source_repo: yeabkal1001/aff_mefcha
+---
+
+# Aff_mefcha Workflow Ui Library Integration
+
+## Action
+
+Add UI components to client/components/ui/, update client/package.json, global styles, component registry, and lockfile if dependencies change
+
+## Evidence
+
+- Workflow: ui-library-or-component-batch-integration
+- Example commit sequences and files
+
+---
+id: aff_mefcha-workflow-feature-enhancement
+trigger: "When enhancing an existing feature and updating documentation"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: yeabkal1001/aff_mefcha
+---
+
+# Aff_mefcha Workflow Feature Enhancement
+
+## Action
+
+Update/refactor components in client/components/[feature]/, hooks, page files, mock data, and related documentation
+
+## Evidence
+
+- Workflow: feature-enhancement-and-documentation-update
+- Example commit sequences and files
+
