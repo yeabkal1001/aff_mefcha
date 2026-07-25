@@ -33,8 +33,8 @@ export function SidebarNav() {
                 onClick={() => setActive(label)}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "group flex w-full items-center gap-2.5 rounded-lg px-1.5 py-1 text-left",
-                  "text-[0.75rem] transition-colors duration-200",
+                  "group flex w-full items-center gap-2.5 rounded-lg px-2 py-1 text-left",
+                  "text-[0.8125rem] transition-colors duration-200",
                   isActive
                     ? "font-medium text-foreground"
                     : "text-foreground/70 hover:bg-foreground/[0.035] hover:text-foreground",
@@ -42,7 +42,7 @@ export function SidebarNav() {
               >
                 <Icon
                   className={cn(
-                    "size-[0.9375rem] shrink-0 transition-colors",
+                    "size-[1.0625rem] shrink-0 transition-colors",
                     isActive
                       ? "text-foreground"
                       : "text-muted-foreground group-hover:text-foreground",

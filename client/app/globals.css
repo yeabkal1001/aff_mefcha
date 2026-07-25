@@ -193,11 +193,29 @@
 
   /* The small letterspaced uppercase labels: LESSON TOPIC, YOU SAID, WHY. */
   .label-eyebrow {
-    font-size: 0.5625rem;
+    font-size: 0.625rem;
     font-weight: 600;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--muted-foreground);
+  }
+
+  /* The slip inside a learner's sentence. Wavy, like a proofreader's mark,
+     with just enough tint to find it without shouting. */
+  .mark-error {
+    color: var(--coach-error);
+    background-color: color-mix(in oklab, var(--coach-error) 9%, transparent);
+    border-radius: 0.1875rem;
+    padding-inline: 0.125rem;
+    text-decoration: underline wavy var(--coach-error);
+    text-underline-offset: 0.1875rem;
+    text-decoration-thickness: 1px;
+  }
+
+  /* The repaired sentence. */
+  .mark-correct {
+    color: var(--coach-correct);
+    font-weight: 500;
   }
 }
 

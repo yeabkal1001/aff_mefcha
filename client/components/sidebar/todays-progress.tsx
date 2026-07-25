@@ -16,32 +16,32 @@ export function TodaysProgress({
   const goal = dailyProgress.speakingGoalMinutes;
 
   return (
-    <section className="surface-panel rounded-xl px-2.5 py-2">
+    <section className="surface-panel rounded-xl px-3 py-2.5">
       <div className="flex items-center justify-between">
         <h2 className="label-eyebrow">Today&apos;s Progress</h2>
-        <Gauge className="size-3 text-muted-foreground/50" strokeWidth={2} />
+        <Gauge className="size-3.5 text-muted-foreground/50" strokeWidth={2} />
       </div>
 
-      <div className="mt-2 flex items-center gap-2.5">
-        <ProgressRing value={speakingMinutes / goal} />
+      <div className="mt-2.5 flex items-center gap-3">
+        <ProgressRing value={speakingMinutes / goal} size={42} />
         <div className="min-w-0">
-          <p className="text-[0.625rem] leading-tight text-muted-foreground">
+          <p className="text-[0.6875rem] leading-tight text-muted-foreground">
             Speaking Time
           </p>
-          <p className="text-[0.8125rem] font-semibold leading-tight tabular-nums text-foreground">
+          <p className="text-[0.875rem] font-semibold leading-tight tabular-nums text-foreground">
             {speakingMinutes} / {goal} min
           </p>
         </div>
       </div>
 
-      <dl className="mt-2 space-y-1 border-t border-border/60 pt-2">
+      <dl className="mt-2.5 space-y-1.5 border-t border-border/60 pt-2.5">
         <Stat label="Corrections" value={corrections} />
         <Stat label="New Vocabulary" value={dailyProgress.newVocabulary} />
         <Stat
           label="Streak"
           value={
             <span className="inline-flex items-center gap-1 font-semibold text-coach-streak">
-              <Flame className="size-3 fill-current" strokeWidth={0} />
+              <Flame className="size-3.5 fill-current" strokeWidth={0} />
               {dailyProgress.streakDays} days
             </span>
           }
@@ -60,8 +60,8 @@ function Stat({
 }) {
   return (
     <div className="flex items-center justify-between gap-2">
-      <dt className="text-[0.6875rem] text-muted-foreground">{label}</dt>
-      <dd className="text-[0.6875rem] font-semibold tabular-nums text-foreground">
+      <dt className="text-[0.75rem] text-muted-foreground">{label}</dt>
+      <dd className="text-[0.75rem] font-semibold tabular-nums text-foreground">
         {value}
       </dd>
     </div>

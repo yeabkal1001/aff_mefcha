@@ -63,16 +63,16 @@ export function AppSidebar({
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -18 }}
           transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-          className="surface-panel relative z-10 m-2.5 flex w-[11.5rem] shrink-0 flex-col rounded-xl p-2 shadow-[0_20px_60px_-40px_oklch(0.4_0.06_280/45%)]"
+          className="surface-panel relative z-10 m-2.5 flex w-[13.5rem] shrink-0 flex-col rounded-2xl p-2.5 shadow-[0_20px_60px_-40px_oklch(0.4_0.06_280/45%)]"
         >
           <div className="flex items-start justify-between gap-2">
-            <div className="flex min-w-0 items-center gap-2">
+            <div className="flex min-w-0 items-center gap-2.5">
               <BrandMark />
               <span className="min-w-0">
-                <span className="block truncate text-[0.75rem] font-semibold leading-tight text-foreground">
+                <span className="block truncate text-[0.8125rem] font-semibold leading-tight text-foreground">
                   {learner.name}
                 </span>
-                <span className="block text-[0.625rem] leading-tight text-muted-foreground">
+                <span className="block text-[0.6875rem] leading-tight text-muted-foreground">
                   {learner.plan}
                 </span>
               </span>
@@ -87,7 +87,7 @@ export function AppSidebar({
                   aria-expanded
                   className="rounded-md p-0.5 text-muted-foreground/70 transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 >
-                  <PanelLeft className="size-3.5" strokeWidth={1.75} />
+                  <PanelLeft className="size-4" strokeWidth={1.75} />
                 </button>
               </TooltipTrigger>
               <TooltipContent side="right" sideOffset={8}>
@@ -96,18 +96,18 @@ export function AppSidebar({
             </Tooltip>
           </div>
 
-          <div className="mt-3.5">
+          <div className="mt-3.5 shrink-0">
             <SidebarNav />
           </div>
 
-          <div className="mt-3.5">
+          {/* The history is the elastic region: it absorbs the leftover space
+              and scrolls if the list outgrows it, so the cards below always
+              stay pinned inside the panel. */}
+          <div className="mt-3.5 min-h-0 flex-1 overflow-y-auto">
             <ChatHistory />
           </div>
 
-          {/* Pushes the two cards to the bottom, as in the design. */}
-          <div className="flex-1" />
-
-          <div className="space-y-2">
+          <div className="mt-3 shrink-0 space-y-2">
             <TodaysProgress
               speakingMinutes={speakingMinutes}
               corrections={corrections}
