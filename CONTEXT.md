@@ -48,6 +48,10 @@ _Avoid_: prompt, content, media
 The store of stimulus assets built ahead of time, each addressed by template, target set and theme. Sessions read from it; they never generate during a session.
 _Avoid_: cache, asset store
 
+**Outline**:
+The learner's next thirty days as an arc of Domains and objectives, derived on demand from Life Path, band and completion state. Never stored, and never names a competency or a template — those are chosen the morning of. See `docs/adr/0007-the-outline-is-a-projection-not-a-plan.md`.
+_Avoid_: plan, roadmap, curriculum (for this), schedule
+
 **Turn**:
 One uninterrupted stretch of learner speech inside a session, carrying its audio, both transcripts, and its delivery metrics.
 _Avoid_: utterance, response, recording
@@ -97,6 +101,10 @@ _Avoid_: user, student, customer
 **Life Path**:
 Why the learner is here. A skin over the curriculum: domain priorities, context substitutions, a vocabulary overlay, and template preferences. Never a separate curriculum.
 _Avoid_: goal, track, persona
+
+**Learner Profile**:
+The resolved set of generator inputs derived from onboarding — L1 and its interference risks, Life Path, age band, study field, load budget, feedback language, band. Distinct from the **Onboarding Draft**, which is the raw answers held on the device until sign-up.
+_Avoid_: user profile, settings, preferences
 
 **Mastery**:
 The estimate of how well a learner can perform one sub-competency, updated from observed evidence and weighted by how reliably the template observes that skill.

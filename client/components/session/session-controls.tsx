@@ -1,6 +1,6 @@
 "use client";
 
-import { Mic, X } from "lucide-react";
+import { Mic, SkipForward, X } from "lucide-react";
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { SessionState } from "@/lib/mock-data";
@@ -10,12 +10,15 @@ interface SessionControlsProps {
   state: SessionState;
   onToggleListening: () => void;
   onEnd: () => void;
+  /** Absent on the last activity of the mission. */
+  onSkip?: () => void;
 }
 
 export function SessionControls({
   state,
   onToggleListening,
   onEnd,
+  onSkip,
 }: SessionControlsProps) {
   const listening = state === "listening";
 
@@ -48,6 +51,28 @@ export function SessionControls({
           {listening ? "Stop speaking" : "Start speaking"}
         </TooltipContent>
       </Tooltip>
+
+      {/* A mission is several activities, so there has to be a way past one
+          that is not working — otherwise the only exit is ending the session. */}
+      {onSkip && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={onSkip}
+              aria-label="Next activity"
+              className={cn(
+                "grid size-[3.25rem] place-items-center rounded-full bg-[oklch(0.36_0.012_265)] text-white",
+                "transition-transform duration-300 ease-out hover:scale-105 active:scale-95",
+                "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring",
+              )}
+            >
+              <SkipForward className="size-[1.05rem]" strokeWidth={2.25} />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent sideOffset={10}>Next activity</TooltipContent>
+        </Tooltip>
+      )}
 
       <Tooltip>
         <TooltipTrigger asChild>

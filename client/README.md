@@ -45,19 +45,53 @@ Theme tokens are oklch variables in `app/globals.css`, with dark mode behind a `
 ## Mock data, and the seam back to the server
 
 Nothing here talks to the server yet. Everything the UI renders comes from
-[`lib/mock-data.ts`](lib/mock-data.ts), and the conversation loop is driven by
-timers in [`hooks/use-session.ts`](hooks/use-session.ts).
+[`lib/mock-data.ts`](lib/mock-data.ts), and the coach's side of the conversation
+is driven by [`hooks/use-session.ts`](hooks/use-session.ts).
 
 Those two files are the whole seam. When the API exists, the exported shapes in
-`mock-data.ts` become response bodies, and the timers in `use-session.ts` become
-socket events — no component should need to change. Keep new mock shapes honest
-for that reason, and resist reaching for mock data from inside a component.
+`mock-data.ts` become response bodies and the scripted corrections in
+`use-session.ts` become socket events — no component should need to change. Keep
+new mock shapes honest for that reason, and resist reaching for mock data from
+inside a component.
 
-The one genuinely live piece is [`hooks/use-audio-level.ts`](hooks/use-audio-level.ts),
-which reads the real microphone through an `AnalyserNode` while the learner is
-speaking. When the coach speaks there is no audio to measure yet, so the level
-is synthesised; the same fallback covers a learner who refuses mic permission,
-because a motionless orb reads as a broken app.
+## The microphone is real
+
+[`lib/mic-engine.ts`](lib/mic-engine.ts) is not a prop. It owns one shared,
+reference-counted `getUserMedia` stream and does genuine voice activity
+detection on it, and the **turn boundary is its verdict, not a timer**: the
+learner's turn ends when the microphone stops hearing them. Everything after that
+boundary is still faked, but the part the learner controls responds to them.
+
+Three things in there are load-bearing, and each replaced something that was
+broken. Read the comments before changing any of them.
+
+- **Thresholds are relative to a learned noise floor, never absolute.** The same
+  sentence into a headset and into a laptop array differ by more than a factor
+  of ten, so a fixed level cannot work for both. It was fixed, and the mic check
+  in onboarding was literally unpassable as a result.
+- **The floor is an average of quiet frames, not a minimum, and it does not
+  adapt during speech.** Minimum-tracking collapses toward digital silence and
+  room tone starts reading as speech; adapting during speech lets a steady
+  talker pull the threshold up past their own voice.
+- **Every time constant is in milliseconds.** Anything expressed in animation
+  frames is a time constant that secretly tracks the machine's frame rate, and
+  the analysis loop is a timer rather than `requestAnimationFrame` for the same
+  reason — rAF paced by a slow display samples 43ms windows 100ms apart and
+  misses most of the audio.
+
+In development, `__mic()` in the console returns the live detector internals —
+RMS, floor, threshold, and the current verdict. That is the first thing to look
+at for any "it isn't hearing me" report.
+
+[`hooks/use-audio-level.ts`](hooks/use-audio-level.ts) turns the engine's level
+into the 0..1 signal the orb and the meter animate, through a ref rather than
+state so 60fps of loudness never re-renders React. When the *coach* speaks there
+is no audio to measure yet, so that side is synthesised.
+
+A blocked microphone is the one case where the orb deliberately does not fake it.
+An orb dancing over a dead mic tells the learner they are being heard when
+nothing is being recorded, and they find out four minutes later — so
+`components/session/mic-notice.tsx` says it in words instead.
 
 ## Screens
 
@@ -70,7 +104,9 @@ Routes today:
 | `/` | Landing. One call to action, no account. |
 | `/onboarding` | The whole flow, step-machined over `ONBOARDING_STEPS` — nine questions, mic check, three assessment prompts, profile reveal. |
 | `/practice` | The live session. |
+| `/plan` | The thirty-day outline. |
 | `/signup` | Shown after the first mission, never before it. |
+| `/dev/stimulus` | Internal. Every stimulus kind on one page, full and compact. Not linked from the product; delete it once all eighteen templates have run in a real session. |
 
 Onboarding answers live in `hooks/use-onboarding-draft.ts` — an external store backed by `localStorage`, because there is no account until the very end. Which question feeds which part of the generator is spelled out in [`../docs/product/onboarding.md`](../docs/product/onboarding.md); do not add a question that does not change a generated session.
 
@@ -88,7 +124,29 @@ The middle slot under the orb holds exactly one of three things, and which one i
 
 `LiveTranscript` renders the **Wispr Flow** track, the cleaned-up one meant to be read. The verbatim fal Whisper track is never shown mid-turn: the gap between the two transcripts is what the correction is made of, so putting the verbatim words on screen would give the correction away before the learner has finished the sentence.
 
-`components/session/stimulus-image.tsx` is the picture in an `EX001` picture-description session, and the practice screen switches to it on `currentSession.stimulusType === "image"`. It draws its scene inline today; in production the asset comes from the Stimulus Pool, generated per session so that reviewing a competency "in a new context" means a genuinely new picture.
+## Exercises
+
+There are eighteen exercise templates in [`../docs/curriculum/exercise-templates.md`](../docs/curriculum/exercise-templates.md) and there is one practice screen. The rule that keeps it that way: **nothing in the UI branches on a template id.**
+
+A session carries a `StimulusSpec` — a discriminated union in `components/session/stimulus/types.ts` with one variant per stimulus type in the curriculum. `<Stimulus spec={...} />` dispatches on `spec.kind` through an exhaustive switch, so adding a stimulus type to `lib/templates.ts` produces a compile error at the dispatcher rather than a blank panel at runtime. Adding `EX016 Debate` to the demo is a data change.
+
+| File | What it owns |
+| --- | --- |
+| `lib/templates.ts` | The eighteen templates: stimulus kind, interaction mode, CEFR range, duration. A thin projection of the engine's descriptors — no `elicits` or `measures`, since the browser never scores anything. |
+| `components/session/stimulus/` | One renderer per stimulus kind, plus the dispatcher and the shared `StimulusPanel`. |
+| `components/session/stimulus/scenes.tsx` | Drawn stand-ins for Stimulus Pool assets, each with the description that is the ceiling on what the learner can be expected to say. |
+| `components/session/exercise-stage.tsx` | Composes stimulus, orb and the feedback slot for any template. |
+| `components/session/activity-rail.tsx` | Which of the mission's four to six activities the learner is on. |
+
+Every stimulus takes a `compact` prop. That is the state it enters when a correction is on screen: still visible, because a correction only means something against what the learner was looking at, but no longer competing with it.
+
+## Learner profile and the outline
+
+Two pure functions, both of which move to the server unchanged when it exists.
+
+`lib/learner-profile.ts` turns an `OnboardingDraft` into a `LearnerProfile`. These are deliberately different shapes — the draft is twelve screens of UI state including a half-typed name, the profile is the resolved input set `buildDayPlan` takes. It applies defaults rather than throwing, because it runs mid-onboarding when half the answers are null; check `profile.placed` rather than inspecting fields.
+
+`lib/study-outline.ts` projects the next thirty days. Read [`../docs/adr/0007-the-outline-is-a-projection-not-a-plan.md`](../docs/adr/0007-the-outline-is-a-projection-not-a-plan.md) before changing it. An outline is not a plan: it names domains and objectives, never competencies or templates, because those are chosen the morning of from evidence that does not exist yet. It is stored nowhere and recomputed on every render, which is what stops it drifting from the engine.
 
 ## Language rules that reach the UI
 

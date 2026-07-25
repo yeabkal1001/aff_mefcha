@@ -328,6 +328,8 @@ Promotion needs no regeneration step, because nothing was generated. The next mo
 
 Earlier drafts referred to a "30-day plan" and to "the learning plan". Neither exists. Every question above the Day Plan — which domain comes next, how far the learner is from B1 — is computed on demand from life path, CEFR and completion state, so there is no plan to hold, invalidate, or regenerate. What *is* built ahead of time is the Stimulus Pool, described in section 12.
 
+The learner does see a **thirty-day outline**, and it is that on-demand computation given a screen rather than a return of the stored plan. It names domains, their order and their objectives — all knowable from `domain_priority`, the placed band and `estimatedDays` — and never names a competency or a template, because those are selected the morning of from evidence that does not exist yet. It is a pure function, recomputed on every render, so it cannot drift from the engine. See [`../adr/0007-the-outline-is-a-projection-not-a-plan.md`](../adr/0007-the-outline-is-a-projection-not-a-plan.md).
+
 ### Day Plan (the learner-facing "Today's Mission")
 
 This also resolves a conflict between the source documents: the load table budgets four to six activities per day, while Hana's mission reads as a single ten-minute conversation. A Mission is the **themed Day Plan**; the sessions are the activities inside it. The theme comes from the Life Path context substitution, which is why it feels like one story rather than four drills.

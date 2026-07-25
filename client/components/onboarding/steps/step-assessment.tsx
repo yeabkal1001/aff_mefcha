@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
 
 import { AmbientBackground } from "@/components/session/ambient-background";
-import { StimulusImage } from "@/components/session/stimulus-image";
+import { Stimulus } from "@/components/session/stimulus";
 import { VoiceOrb } from "@/components/session/voice-orb";
 import { Button } from "@/components/ui/button";
 import { updateDraft } from "@/hooks/use-onboarding-draft";
@@ -113,8 +113,13 @@ function AssessmentTurn({
         {prompt.instruction}
       </p>
 
-      {prompt.template === "EX001" && (
-        <StimulusImage className="mt-6 w-full max-w-[19rem]" />
+      {/* The assessment runs real templates, so it renders through the same
+          dispatcher the practice screen uses — a prompt with no stimulus
+          simply has none. */}
+      {prompt.stimulus && (
+        <div className="mt-6 w-full max-w-[19rem]">
+          <Stimulus spec={prompt.stimulus} />
+        </div>
       )}
 
       <div className="mt-9 flex h-16 flex-col items-center justify-center gap-3">

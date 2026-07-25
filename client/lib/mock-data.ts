@@ -6,6 +6,8 @@
  * to change. Keep the shapes honest for that reason.
  */
 
+import { scenes, type StimulusSpec } from "@/components/session/stimulus";
+
 /** Where the session is right now. The orb reads this to pick its gradient. */
 export type SessionState = "idle" | "listening" | "thinking" | "speaking";
 
@@ -82,33 +84,39 @@ export const dailyProgress: DailyProgress = {
 };
 
 export const coachTip =
-  "Try to use past tense when talking about events that already happened.";
+  "When you describe a picture, say what is happening right now — is sitting, is pointing.";
 
 /**
  * Cycled through as the learner speaks, so the demo shows more than one
  * correction without a backend.
+ *
+ * All three describe the picture in `currentSession`, and each targets a
+ * sub-competency `EX001`'s own evaluation block already lists — plural nouns,
+ * prepositions of place, articles. A correction that arrives out of nowhere
+ * looks like a script; one that lands on the thing the learner was just asked
+ * to describe looks like the engine working.
  */
 export const corrections: Correction[] = [
   {
     id: "c-1",
-    said: "Yesterday I go to the market.",
-    errorSpan: "go",
-    corrected: "Yesterday I went to the market.",
-    why: 'For past events, we use "went" instead of "go".',
+    said: "I see two student sitting in a bench.",
+    errorSpan: "two student",
+    corrected: "I see two students sitting on a bench.",
+    why: 'After a number, the noun takes an -s — two students. And we sit "on" a bench, not "in" it.',
   },
   {
     id: "c-2",
-    said: "I would like a coffee, please. I drink it every mornings.",
-    errorSpan: "every mornings",
-    corrected: "I would like a coffee, please. I drink it every morning.",
-    why: '"Every" is followed by a singular noun — every morning, not every mornings.',
+    said: "The man is point at the paper on the wall.",
+    errorSpan: "is point",
+    corrected: "The man is pointing at the paper on the wall.",
+    why: 'For something happening right now, "is" is followed by the -ing form: is pointing.',
   },
   {
     id: "c-3",
-    said: "Can you give me more milk in it? It is too much strong.",
-    errorSpan: "too much strong",
-    corrected: "Can you give me more milk in it? It is too strong.",
-    why: 'Before an adjective use "too" on its own. "Too much" goes with nouns.',
+    said: "Behind them there is big building with many window.",
+    errorSpan: "big building with many window",
+    corrected: "Behind them there is a big building with many windows.",
+    why: 'Singular countable nouns need "a" — a big building. And "many" is always followed by a plural — many windows.',
   },
 ];
 
@@ -122,6 +130,8 @@ export interface AssessmentPrompt {
   instruction: string;
   /** Roughly four minutes of speech across all three. */
   seconds: number;
+  /** Absent for prompts the coach simply asks aloud. */
+  stimulus?: StimulusSpec;
 }
 
 export const assessmentPrompts: AssessmentPrompt[] = [
@@ -129,8 +139,15 @@ export const assessmentPrompts: AssessmentPrompt[] = [
     template: "EX001",
     kind: "Picture description",
     instruction:
-      "Look at this photo for a moment, then tell me everything you can see.",
+      "Look at this picture for a moment, then tell me everything you can see.",
     seconds: 70,
+    stimulus: {
+      kind: "image",
+      scene: "campus_courtyard",
+      description: scenes.campus_courtyard.description,
+      instruction:
+        "Look at this picture for a moment, then tell me everything you can see.",
+    },
   },
   {
     template: "EX007",
@@ -175,23 +192,75 @@ export const openingProfile: Dimension[] = [
 ];
 
 /**
- * One activity inside today's mission. `template` is what decides the shape of
- * the screen: `EX001` needs a picture on it, `EX007` and `EX018` do not.
+ * One activity inside today's mission.
  *
- * The learner never sees any of these IDs. They see one scene.
+ * A Day Plan is four to six of these under a single theme — the thing the
+ * learner sees as "Today's Mission". Each carries a template id and the
+ * stimulus that template needs, and the screen is composed from the stimulus
+ * alone: nothing in the UI branches on the template id.
+ *
+ * The learner never sees `EX001`. They see one scene.
  */
 export interface PracticeSession {
-  template: string;
-  /** What the learner is asked to do, in the coach's voice. */
-  instruction: string;
-  stimulusType: "image" | "scenario" | "none";
+  templateId: string;
+  /** What the learner would call this activity. */
+  label: string;
+  stimulus: StimulusSpec;
 }
 
-export const currentSession: PracticeSession = {
-  template: "EX001",
-  instruction: "Look at this. Tell me what is happening — as much as you can see.",
-  stimulusType: "image",
-};
+/**
+ * Hana's day one, on the University Success path.
+ *
+ * Four activities, four different templates, one theme — which is the claim
+ * the demo has to support: the mission reads as a single story even though the
+ * engine chose each activity independently.
+ */
+export const dayPlan: PracticeSession[] = [
+  {
+    templateId: "EX001",
+    label: "Describe the scene",
+    stimulus: {
+      kind: "image",
+      scene: "campus_courtyard",
+      description: scenes.campus_courtyard.description,
+      instruction: "Look at this. Tell me what is happening — as much as you can see.",
+    },
+  },
+  {
+    templateId: "EX007",
+    label: "Answer questions",
+    stimulus: {
+      kind: "audio_question",
+      question: "Who did you meet on your first day at university?",
+      instruction: "Answer in a few sentences. There is no right answer here.",
+    },
+  },
+  {
+    templateId: "EX018",
+    label: "Roleplay",
+    stimulus: {
+      kind: "scenario",
+      setting: "You arrive late to a seminar you have not attended before.",
+      learnerRole: "A first-year student",
+      coachRole: "The lecturer, mid-sentence",
+      objective: "Apologise, introduce yourself, and ask what you missed.",
+      instruction: "Start whenever you are ready. I will answer as the lecturer.",
+    },
+  },
+  {
+    templateId: "EX009",
+    label: "Tell a story",
+    stimulus: {
+      kind: "text",
+      prompt: "Tell me about a day at school or university that you still remember.",
+      hints: ["Where were you?", "Who was with you?", "How did it end?"],
+      instruction: "Take your time. Two or three minutes is plenty.",
+    },
+  },
+];
+
+/** The activity the demo opens on. */
+export const currentSession = dayPlan[0];
 
 export interface DimensionGain {
   label: string;
@@ -214,8 +283,13 @@ export const firstSessionGains: DimensionGain[] = [
 export const sentenceLengthGain = { from: 6, to: 11 };
 
 /** What the coach says while it has the floor, matched to each correction. */
+/**
+ * What the coach says between turns. Each one pushes the learner back at the
+ * picture from a different angle, which is how a single stimulus keeps
+ * producing new opportunities for the same competencies.
+ */
 export const coachLines: string[] = [
-  "So tell me, what did you do yesterday?",
-  "Nice. Now imagine you are at the counter — what would you order?",
-  "Good. Ask me to change something about your drink.",
+  "Good. Now tell me about the person standing up — what is he doing?",
+  "Nice. What can you see behind them?",
+  "Last one. If you walked into that courtyard, who would you talk to first?",
 ];
