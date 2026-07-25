@@ -2,6 +2,11 @@ packages:
   - client
   - server
 
-ignoredBuiltDependencies:
-  - sharp
-  - unrs-resolver
+# pnpm 10 blocks dependency install scripts by default. This is the allowlist.
+# Prisma cannot download its query engines without it, and tsx needs esbuild's
+# platform binary. Anything not listed here stays blocked, which is the point.
+onlyBuiltDependencies:
+  - "@prisma/client"
+  - "@prisma/engines"
+  - prisma
+  - esbuild
