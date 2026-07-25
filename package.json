@@ -7,22 +7,33 @@
     "node": ">=20.0.0"
   },
   "packageManager": "pnpm@10.33.0",
+  "comments": {
+    "python": "The server is FastAPI. These scripts assume server/.venv exists and use the Windows path; on macOS or Linux replace .venv/Scripts with .venv/bin.",
+    "database": "Postgres runs locally by default. docker compose is kept as a fallback via db:docker:up."
+  },
   "scripts": {
     "dev": "concurrently -n server,client -c cyan,magenta \"pnpm dev:server\" \"pnpm dev:client\"",
     "dev:client": "pnpm --filter client dev",
-    "dev:server": "pnpm --filter server dev",
-    "build": "pnpm --filter server build && pnpm --filter client build",
-    "start": "concurrently -n server,client -c cyan,magenta \"pnpm --filter server start\" \"pnpm --filter client start\"",
-    "typecheck": "pnpm -r typecheck",
-    "lint": "pnpm -r lint",
-    "db:up": "docker compose up -d postgres",
-    "db:down": "docker compose down",
-    "db:reset": "docker compose down -v && docker compose up -d postgres",
-    "db:migrate": "pnpm --filter server db:migrate",
-    "db:studio": "pnpm --filter server db:studio",
-    "setup": "pnpm install && pnpm db:up && pnpm --filter server db:generate"
+    "dev:server": "cd server && .venv/Scripts/python.exe -m uvicorn app.main:app --reload --port 4000",
+    "build": "pnpm --filter client build",
+    "start": "concurrently -n server,client -c cyan,magenta \"pnpm start:server\" \"pnpm --filter client start\"",
+    "start:server": "cd server && .venv/Scripts/python.exe -m uvicorn app.main:app --host 0.0.0.0 --port 4000",
+    "typecheck": "pnpm --filter client typecheck",
+    "lint": "pnpm --filter client lint && pnpm lint:server",
+    "lint:server": "cd server && .venv/Scripts/python.exe -m ruff check app",
+    "db:create": "psql -U postgres -h localhost -f server/scripts/create_db.sql",
+    "db:migrate": "cd server && .venv/Scripts/python.exe -m alembic upgrade head",
+    "db:revision": "cd server && .venv/Scripts/python.exe -m alembic revision --autogenerate -m change",
+    "db:seed": "cd server && .venv/Scripts/python.exe -m app.seed.run",
+    "db:reset": "cd server && .venv/Scripts/python.exe -m alembic downgrade base && .venv/Scripts/python.exe -m alembic upgrade head && .venv/Scripts/python.exe -m app.seed.run",
+    "db:docker:up": "docker compose up -d postgres",
+    "db:docker:down": "docker compose down",
+    "test:server": "cd server && .venv/Scripts/python.exe -m pytest"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
+  },
+  "dependencies": {
+    "pnpm": "^11.17.0"
   }
 }

@@ -11,7 +11,20 @@ How the six hackathon APIs map onto the AI Communication Coach: what each one do
 | fal | English coach voice, verbatim Whisper analysis, scenario images | Whisper with word-level timestamps is how the Communication Profile gets real numbers instead of LLM guesses; also our only source of English TTS |
 | Exa | Discovering real-world source material per Life Path | Semantic search finds "what do Ethiopian university presentations actually sound like" better than keyword search |
 | Firecrawl | Turning discovered pages into structured mission packs | Schema-based extraction converts messy pages into typed vocabulary, scenarios and question banks |
-| Render | Node API, Postgres, cron worker, public webhook URL | Already in the plan; fal's queue webhooks need a public HTTPS endpoint |
+| Render | FastAPI service, Postgres, cron worker, public webhook URL | Already in the plan; fal's queue webhooks need a public HTTPS endpoint |
+
+## The backend is Python
+
+The API is FastAPI, so provider calls are made with `fal-client`, `exa-py` and
+`firecrawl-py`. Two consequences worth knowing before you start wiring:
+
+- **Addis AI publishes a JavaScript SDK, not a Python one.** Call their REST API
+  directly with `httpx` and generate the idempotency key yourself — the JS SDK created
+  it for you, and `voice.generate` requires one, so a network retry is only safe once
+  you are passing your own.
+- The snippets below are quoted from the providers' own documentation and show the
+  request and response *shapes*, which are language-independent. Read them as the
+  contract, not as the code we ship.
 
 ## Two corrections to the original plan
 
@@ -43,7 +56,7 @@ Feed Wispr Flow a `dictionary_context` so Ethiopian names and domain terms trans
 }
 ```
 
-Auth: mint short-lived client JWTs on the Render backend so the browser streams directly to `wss://platform-api.wisprflow.ai/api/v1/dash/client_ws`. Audio must be base64 16kHz mono PCM16, under 25MB / 6 minutes per turn.
+Auth: mint short-lived client JWTs on the FastAPI backend so the browser streams directly to `wss://platform-api.wisprflow.ai/api/v1/dash/client_ws`. Audio must be base64 16kHz mono PCM16, under 25MB / 6 minutes per turn.
 
 ## Measuring the Communication Profile
 
@@ -150,7 +163,7 @@ Life Path cover art and scene backdrops are the genuinely optional part.
 ## Render setup
 
 - **Web service** — Next.js frontend.
-- **Web service** — Node API. Holds every API key, proxies all model calls, receives fal queue webhooks, mints Wispr Flow client tokens.
+- **Web service** — FastAPI API. Holds every API key, proxies all model calls, receives fal queue webhooks, mints Wispr Flow client tokens.
 - **Postgres** — users, sessions, per-turn metrics, competency snapshots, mission packs.
 - **Cron job** — nightly Exa + Firecrawl content refresh.
 

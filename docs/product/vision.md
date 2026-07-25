@@ -60,7 +60,7 @@ Two separate things that must not be confused. The Communication **Rings** — S
 
 ## Tech stack
 
-Next.js, Tailwind, Node.js, PostgreSQL on Render. Every hackathon API has a job: Addis AI for Amharic voice, translation and realtime free talk; Wispr Flow for low-latency live transcription; fal for English TTS, verbatim Whisper analysis and stimulus images; Exa and Firecrawl for the Life Path content pipeline; Render for the API, Postgres and cron. Endpoints and wiring are in [`../architecture/integrations.md`](../architecture/integrations.md).
+Next.js, Tailwind, FastAPI, PostgreSQL on Render. Every hackathon API has a job: Addis AI for Amharic voice, translation and realtime free talk; Wispr Flow for low-latency live transcription; fal for English TTS, verbatim Whisper analysis and stimulus images; Exa and Firecrawl for the Life Path content pipeline; Render for the API, Postgres and cron. Endpoints and wiring are in [`../architecture/integrations.md`](../architecture/integrations.md).
 
 ## The demo
 

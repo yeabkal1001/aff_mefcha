@@ -6,26 +6,36 @@ An AI speaking coach for Ethiopian students and professionals. Voice conversatio
 
 ## Getting started
 
-Needs Node 20+, pnpm and Docker Desktop.
+Needs Node 20+, pnpm, Python 3.12+ and a local PostgreSQL.
 
 ```bash
-pnpm install                       # install both packages
-cp server/.env.example server/.env # then fill in the provider keys
+pnpm install                                    # client dependencies
+pnpm db:create                                  # once — creates the coach role and english_coach database
+cd server && python -m venv .venv && .venv/Scripts/python.exe -m pip install -e . && cd ..
+cp server/.env.example server/.env              # then fill in the provider keys
 cp client/.env.example client/.env.local
-pnpm db:up                         # Postgres in Docker
-pnpm --filter server db:generate
-pnpm dev                           # client :3000, server :4000
+pnpm db:migrate                                 # apply the schema
+pnpm db:seed                                    # load the A2-D01 content pack
+pnpm dev                                        # client :3000, server :4000
 ```
 
-`curl http://localhost:4000/health` should answer. Root scripts: `pnpm dev`, `pnpm build`, `pnpm typecheck`, `pnpm db:up`, `pnpm db:reset`, `pnpm db:studio`.
+`curl http://localhost:4000/health` should answer, and the API documents itself at
+`http://localhost:4000/docs`. Root scripts: `pnpm dev`, `pnpm build`, `pnpm typecheck`,
+`pnpm db:create`, `pnpm db:migrate`, `pnpm db:seed`, `pnpm db:reset`, `pnpm test:server`.
+
+On macOS or Linux use `.venv/bin/python` in place of `.venv/Scripts/python.exe`. Postgres
+runs locally; `pnpm db:docker:up` starts the same database in Docker instead if you
+prefer.
 
 ## Client and server are separate
 
-Two packages in one pnpm workspace, so the two halves of the team never block each other.
+Two packages, one per language, so the two halves of the team never block each other. The
+client is a pnpm workspace package; the server is a Python package driven by the same root
+scripts.
 
 | | `client/` | `server/` |
 | --- | --- | --- |
-| Stack | Next.js 16, React 19, Tailwind 4 | Express 5, Prisma, Postgres |
+| Stack | Next.js 16, React 19, Tailwind 4 | FastAPI, SQLAlchemy 2.0, Alembic, Postgres |
 | Port | 3000 | 4000 |
 | Owns | Everything the learner sees | The database, every provider key, all engine logic |
 | Never has | A provider key, a database query | An opinion about layout |
@@ -38,9 +48,12 @@ They meet at exactly one place: HTTP at `NEXT_PUBLIC_API_URL`. Each package has 
 README.md                    you are here
 CONTEXT.md                   the glossary — binding for code, prompts and UI copy
 AGENTS.md                    agent configuration
-docker-compose.yml           Postgres, and Adminer on :8080
+docker-compose.yml           optional Postgres in Docker; local Postgres is the default
 client/                      Next.js app — see client/README.md
-server/                      Node API — see server/README.md
+server/                      FastAPI app — see server/README.md
+├── app/engine/              the rules: mastery, retrievability, scheduling, scoring
+├── app/models/              the data model from session-engine.md section 11
+└── app/seed/                the authored content pack as data
 docs/
 ├── product/
 │   ├── persona.md           ★ the narrative, the personas, the demo script
@@ -118,7 +131,15 @@ Step 7 is roughly forty lines against data the earlier steps already write, and 
 
 ## Current state
 
-Design is complete and internally consistent. **No code has been written yet.**
+Design is complete and internally consistent. **The backend engine, schema and content
+load are written; the provider layer is not.** In place: the section 11 data model, the
+authored A2-D01 content pack as seed data, retrievability and the mastery update,
+priority and template scoring including the variety penalty that produces Day Three,
+the deterministic evaluator, delivery metrics, placement, Profile Dimensions computed at
+read time, and the HTTP routes for onboarding, Today's Mission, turns, retries,
+reflection and the profile. Still to write: Wispr Flow token minting, fal Whisper and
+TTS, the Addis AI Amharic correction line, the conversation director, and the Stimulus
+Pool top-up job.
 
 A grilling session found three real defects — retries inflating `evidence_count` into the promotion floor, placement that could never return a band above the one it probed, and utterance data stored on competency rows — plus the fact that the "30-day plan" the design described could never have been built. Changelog entries 13 to 20 in `session-engine.md` record the fixes; the five decisions carrying real trade-offs are in [`docs/adr/`](./docs/adr/).
 
