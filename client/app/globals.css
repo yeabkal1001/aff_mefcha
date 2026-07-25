@@ -128,3 +128,348 @@
     @apply font-sans;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Coach tokens
+
+   The screen is two systems: an ambient field behind everything, and an orb
+   whose gradient carries the session state. Both are defined here so a
+   retheme never means editing a component.
+   --------------------------------------------------------------------------- */
+
+:root {
+  /* Ambient field. Four washes bled together behind the stage. */
+  --ambient-blush: oklch(0.962 0.024 350);
+  --ambient-lilac: oklch(0.957 0.022 300);
+  --ambient-sky: oklch(0.957 0.03 232);
+  --ambient-mist: oklch(0.995 0.002 250);
+
+  /* Orb, one gradient pair per session state. */
+  --orb-idle-from: oklch(0.76 0.115 305);
+  --orb-idle-to: oklch(0.82 0.11 222);
+  --orb-listening-from: oklch(0.72 0.14 288);
+  --orb-listening-to: oklch(0.84 0.115 215);
+  --orb-speaking-from: oklch(0.64 0.263 349);
+  --orb-speaking-to: oklch(0.85 0.09 228);
+  --orb-thinking-from: oklch(0.78 0.09 268);
+  --orb-thinking-to: oklch(0.88 0.06 240);
+
+  /* Feedback. Red marks what was said, green what to say instead. */
+  --coach-error: oklch(0.62 0.223 27);
+  --coach-correct: oklch(0.596 0.155 152);
+  --coach-streak: oklch(0.72 0.18 45);
+
+  /* Cool grey for session metadata in the history list. */
+  --muted-cool: oklch(0.775 0.026 236);
+
+  /* Frosted surfaces floating on the ambient field. */
+  --panel: oklch(1 0 0 / 76%);
+  --panel-solid: oklch(1 0 0 / 92%);
+  --panel-border: oklch(0.923 0.003 265 / 70%);
+}
+
+@theme inline {
+  --color-ambient-blush: var(--ambient-blush);
+  --color-ambient-lilac: var(--ambient-lilac);
+  --color-ambient-sky: var(--ambient-sky);
+  --color-ambient-mist: var(--ambient-mist);
+  --color-muted-cool: var(--muted-cool);
+  --color-coach-error: var(--coach-error);
+  --color-coach-correct: var(--coach-correct);
+  --color-coach-streak: var(--coach-streak);
+  --color-panel: var(--panel);
+  --color-panel-solid: var(--panel-solid);
+  --color-panel-border: var(--panel-border);
+}
+
+@layer components {
+  /* Frosted card used by the sidebar panels and the correction card. */
+  .surface-panel {
+    background-color: var(--panel);
+    border: 1px solid var(--panel-border);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+  }
+
+  /* The small letterspaced uppercase labels: LESSON TOPIC, YOU SAID, WHY. */
+  .label-eyebrow {
+    font-size: 0.5625rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Ambient field
+
+   Soft washes bled together behind everything. The blush wash lifts while the
+   coach is speaking, which is why the two design frames read as different
+   temperatures even though the layout is identical.
+   --------------------------------------------------------------------------- */
+
+@layer components {
+  .ambient {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    background-color: var(--ambient-mist);
+    pointer-events: none;
+  }
+
+  .ambient-wash {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(70px);
+    transition: opacity 1200ms ease;
+    will-change: transform, opacity;
+  }
+
+  .ambient-blush {
+    top: -18%;
+    left: -12%;
+    width: 62%;
+    height: 78%;
+    background: radial-gradient(
+      circle at 50% 50%,
+      var(--ambient-blush),
+      transparent 68%
+    );
+    opacity: 0.75;
+    animation: ambient-bloom 19s ease-in-out infinite;
+  }
+
+  .ambient-lilac {
+    top: 24%;
+    left: 26%;
+    width: 54%;
+    height: 62%;
+    background: radial-gradient(
+      circle at 50% 50%,
+      var(--ambient-lilac),
+      transparent 70%
+    );
+    opacity: 0.7;
+    animation: ambient-bloom 23s ease-in-out infinite reverse;
+  }
+
+  .ambient-sky {
+    top: -6%;
+    right: -16%;
+    width: 66%;
+    height: 92%;
+    background: radial-gradient(
+      circle at 50% 50%,
+      var(--ambient-sky),
+      transparent 66%
+    );
+    opacity: 0.85;
+    animation: ambient-bloom 17s ease-in-out infinite;
+  }
+
+  .ambient-glare {
+    bottom: -32%;
+    left: 18%;
+    width: 70%;
+    height: 60%;
+    background: radial-gradient(
+      circle at 50% 50%,
+      oklch(1 0 0 / 92%),
+      transparent 70%
+    );
+    opacity: 0.9;
+  }
+
+  /* The coach speaking warms the whole room. */
+  .ambient[data-state="speaking"] .ambient-blush {
+    opacity: 1;
+  }
+
+  .ambient[data-state="speaking"] .ambient-glare {
+    opacity: 0.62;
+  }
+
+  .ambient[data-state="idle"] .ambient-blush {
+    opacity: 0.52;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   The orb
+
+   Four stacked layers: an outer glow that bleeds onto the ambient field,
+   expanding ripples while the coach talks, the sphere itself, and a specular
+   highlight. Everything scales off a single --level custom property that the
+   component writes each frame from the audio signal.
+   --------------------------------------------------------------------------- */
+
+@layer components {
+  .orb {
+    --level: 0;
+    --orb-size: clamp(8.5rem, 13vw, 11rem);
+    --orb-from: var(--orb-idle-from);
+    --orb-to: var(--orb-idle-to);
+
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: var(--orb-size);
+    height: var(--orb-size);
+    isolation: isolate;
+  }
+
+  .orb[data-state="listening"] {
+    --orb-from: var(--orb-listening-from);
+    --orb-to: var(--orb-listening-to);
+  }
+
+  .orb[data-state="speaking"] {
+    --orb-from: var(--orb-speaking-from);
+    --orb-to: var(--orb-speaking-to);
+  }
+
+  .orb[data-state="thinking"] {
+    --orb-from: var(--orb-thinking-from);
+    --orb-to: var(--orb-thinking-to);
+  }
+
+  /* Colour bleeding onto the page behind the sphere. */
+  .orb-glow {
+    position: absolute;
+    inset: -55%;
+    border-radius: 9999px;
+    background: radial-gradient(
+      circle at 50% 50%,
+      var(--orb-from) 0%,
+      var(--orb-to) 38%,
+      transparent 68%
+    );
+    filter: blur(38px);
+    opacity: calc(0.26 + var(--level) * 0.42);
+    transform: scale(calc(0.82 + var(--level) * 0.3));
+    transition:
+      background 900ms ease,
+      opacity 120ms linear;
+    will-change: transform, opacity;
+  }
+
+  .orb-body {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    animation: orb-drift 7s ease-in-out infinite;
+  }
+
+  .orb-sphere {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: 9999px;
+    background:
+      radial-gradient(
+        118% 118% at 26% 22%,
+        var(--orb-from) 0%,
+        transparent 60%
+      ),
+      radial-gradient(
+        124% 124% at 78% 80%,
+        var(--orb-to) 0%,
+        transparent 64%
+      ),
+      linear-gradient(142deg, var(--orb-from) 8%, var(--orb-to) 92%);
+    box-shadow:
+      inset 0 -12px 28px -12px oklch(0.45 0.12 300 / 22%),
+      inset 0 10px 24px -10px oklch(1 0 0 / 55%);
+    /* Feathered edge, matching the soft render in the design. */
+    filter: blur(0.5px) saturate(calc(1 + var(--level) * 0.35));
+    transform: scale(calc(1 + var(--level) * 0.13));
+    transition:
+      background 900ms ease,
+      filter 200ms linear;
+    will-change: transform;
+  }
+
+  /* Small offset catch-light that keeps the sphere from reading as flat. */
+  .orb-highlight {
+    position: absolute;
+    top: 14%;
+    left: 20%;
+    width: 34%;
+    height: 26%;
+    border-radius: 9999px;
+    background: radial-gradient(
+      circle at 50% 50%,
+      oklch(1 0 0 / 70%),
+      transparent 70%
+    );
+    filter: blur(8px);
+    opacity: calc(0.55 + var(--level) * 0.3);
+    pointer-events: none;
+  }
+
+  .orb-ripple {
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    border: 1px solid var(--orb-from);
+    opacity: 0;
+    animation: orb-ripple 2.6s ease-out infinite;
+    pointer-events: none;
+  }
+
+  .orb-ripple:nth-child(2) {
+    animation-delay: 0.85s;
+  }
+
+  .orb-ripple:nth-child(3) {
+    animation-delay: 1.7s;
+  }
+}
+
+/* The orb's drift and the ambient field's slow bloom. Both are decorative,
+   so both stop when the learner asks for less motion. */
+@keyframes orb-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -10px, 0);
+  }
+}
+
+@keyframes ambient-bloom {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translate3d(2%, -2%, 0) scale(1.12);
+    opacity: 1;
+  }
+}
+
+@keyframes orb-ripple {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -42,6 +42,23 @@ Theme tokens are oklch variables in `app/globals.css`, with dark mode behind a `
 
 `components/BlurText.tsx` is a React Bits install kept as a working reference for the pattern. Delete it if it goes unused.
 
+## Mock data, and the seam back to the server
+
+Nothing here talks to the server yet. Everything the UI renders comes from
+[`lib/mock-data.ts`](lib/mock-data.ts), and the conversation loop is driven by
+timers in [`hooks/use-session.ts`](hooks/use-session.ts).
+
+Those two files are the whole seam. When the API exists, the exported shapes in
+`mock-data.ts` become response bodies, and the timers in `use-session.ts` become
+socket events — no component should need to change. Keep new mock shapes honest
+for that reason, and resist reaching for mock data from inside a component.
+
+The one genuinely live piece is [`hooks/use-audio-level.ts`](hooks/use-audio-level.ts),
+which reads the real microphone through an `AnalyserNode` while the learner is
+speaking. When the coach speaks there is no audio to measure yet, so the level
+is synthesised; the same fallback covers a learner who refuses mic permission,
+because a motionless orb reads as a broken app.
+
 ## Screens
 
 The seven screens are listed in [`../docs/product/vision.md`](../docs/product/vision.md). Build them in the order the demo script at the end of [`../docs/product/persona.md`](../docs/product/persona.md) needs them — that script is the definition of done.
