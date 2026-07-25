@@ -25,19 +25,21 @@ Sign-up sits at the end on purpose. Nothing before it needs an account, and the 
 ## Screens
 
 1. **Landing** — one call to action.
-2. **Onboarding** — native language, Life Path, study field, daily time, feedback language. We never ask the learner to declare a CEFR level; most don't know it and the ones who think they do guess high.
-3. **Assessment** — four minutes of speech places the learner and seeds the opening profile.
+2. **Onboarding** — name, age band, native language, Life Path, study field, daily time, feedback language. Every one of those writes a column the session generator reads. We never ask the learner to declare a CEFR level; most don't know it and the ones who think they do guess high.
+3. **Assessment** — four minutes of speech places the learner and seeds the opening profile. It opens on a picture, because describing something in front of you is the lowest-anxiety way to get a learner talking.
 4. **Dashboard** — Today's Mission, the Communication Rings, and the due count.
 5. **Live coaching** — voice conversation with a running transcript.
 6. **Reflection and retry** — what you said beside how it could sound, and the learner naming what changed.
-7. **Communication Profile** — the eight dimensions.
+7. **Communication Profile** — the six dimensions.
 8. **Sign-up** — shown once, after the first mission, framed as saving what just moved.
 
 ## What sits underneath
 
 Four skill libraries — Vocabulary, Grammar, Pronunciation, Fluency — in [`../curriculum/`](../curriculum/). Every addressable unit is a sub-competency such as `G006.01`.
 
-On the surface, the Communication Profile shows **eight dimensions**. Five are fixed for every learner: Grammar, Vocabulary, Pronunciation, Fluency and Confidence. Three come from the Life Path, so Hana sees Presentation, Academic Discussion and Classroom Interaction while Samuel sees Guest Interaction, Complaint Handling and Interview Readiness.
+On the surface, the Communication Profile shows **six dimensions**. Four are fixed for every learner: Grammar, Vocabulary, Pronunciation and Fluency. Two come from the Life Path, so Hana sees Classroom Interaction and Explaining Your Work while Samuel sees Guest Interaction and Complaint Handling.
+
+Every member of every dimension has to be reachable at the learner's band, or the number can never move. That rule is why there is no Confidence or Presentation dimension: both were built from B2–C2 competencies an A2 learner cannot attempt. Delivery signals — hesitation, pausing, turn length — are still measured, but as evidence on A2 competencies inside Fluency rather than as a dimension of their own. See [`../adr/0006-confidence-and-presentation-are-not-dimensions.md`](../adr/0006-confidence-and-presentation-are-not-dimensions.md).
 
 A dimension is a named weighted bundle of sub-competency IDs, never a separate score. Every session updates the underlying competencies and the dimensions are recomputed from them, which is why the dashboard cannot drift away from the learner model — it *is* the learner model.
 

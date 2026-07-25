@@ -17,16 +17,14 @@ export function StepFeedback({ index, count, onNext, onBack }: StepProps) {
   const hasL1 = Boolean(language && language.id !== "other");
   const l1Name = language?.name ?? "your language";
 
+  // There is no "your language only" option on purpose: a correction the
+  // learner never hears in English gives them nothing to repeat, and the retry
+  // is the step the whole immediate-feedback loop rests on.
   const options: { id: FeedbackLanguage; label: string; detail: string }[] = [
     {
       id: "both",
       label: `English, explained in ${l1Name}`,
       detail: "You hear the fix in English and why it's wrong in your own words.",
-    },
-    {
-      id: "l1",
-      label: `${l1Name} only`,
-      detail: "Corrections explained entirely in your language.",
     },
     {
       id: "english",

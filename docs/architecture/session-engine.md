@@ -250,28 +250,43 @@ A Life Path never duplicates curriculum. It is four overlays on the existing one
 
 A naming note first, because two things were both being called rings. **Communication Rings** (Speak, Learn, Improve) are the daily activity rings from the MVP document; they measure showing up. **Profile Dimensions** are what the Communication Profile displays; they measure getting better. This section is about the second one only.
 
-The MVP document promises eight dimensions; the library has four skills. Rather than maintain two scoring systems, define a dimension as a **named weighted subset of the ID space**:
+The MVP document promised eight dimensions; the library has four skills. Rather than maintain two scoring systems, define a dimension as a **named weighted subset of the ID space**:
 
 ```json
 { "dimension": "grammar",       "fixed": true,  "members": ["G*"] }
-{ "dimension": "confidence",    "fixed": true,  "members": ["P015.03", "<delivery fluency subs>"] }
+{ "dimension": "vocabulary",    "fixed": true,  "members": ["V*"] }
+{ "dimension": "pronunciation", "fixed": true,  "members": ["P*"] }
+{ "dimension": "fluency",       "fixed": true,  "members": ["F*"] }
 
-{ "dimension": "presentation",          "life_path": "university_success", "members": ["F015.*"] }
-{ "dimension": "academic_discussion",   "life_path": "university_success", "members": ["F013.*", "F009.*"] }
-{ "dimension": "classroom_interaction", "life_path": "university_success", "members": ["F004.*", "F019.*"] }
+{ "dimension": "classroom_interaction", "life_path": "university_success", "members": ["F003.*", "F004.*"] }
+{ "dimension": "explaining_your_work",  "life_path": "university_success", "members": ["F002.*", "F007.*"] }
 
-{ "dimension": "guest_interaction",     "life_path": "hospitality",        "members": ["F007.*", "F019.*"] }
-{ "dimension": "complaint_handling",    "life_path": "hospitality",        "members": ["F011.*", "F020.*"] }
-{ "dimension": "interview_readiness",   "life_path": "hospitality",        "members": ["F003.*", "F009.*", "F018.*"] }
+{ "dimension": "guest_interaction",     "life_path": "hospitality",        "members": ["F007.*", "F003.*"] }
+{ "dimension": "complaint_handling",    "life_path": "hospitality",        "members": ["F020.*", "F011.*"] }
 ```
 
-Every learner sees **five fixed dimensions** — Grammar, Vocabulary, Pronunciation, Fluency, Confidence — plus **exactly three supplied by their Life Path**. That is the promised eight, and it explains why the source documents listed different sets: they were describing different learners. Hana sees Presentation, Academic Discussion and Classroom Interaction because she is on `university_success`; Samuel sees Guest Interaction, Complaint Handling and Interview Readiness because he is on `hospitality`. Neither list was wrong.
+Every learner sees **four fixed dimensions** — Grammar, Vocabulary, Pronunciation, Fluency — plus **exactly two supplied by their Life Path**. Six in total. Hana sees Classroom Interaction and Explaining Your Work because she is on `university_success`; Samuel sees Guest Interaction and Complaint Handling because he is on `hospitality`.
 
-Three per path is a rule, not a coincidence — the dashboard is a fixed eight-slot layout, so a path supplying two or four would break it. Dimensions may be shared between paths: `interview_readiness` belongs to `hospitality` here because Samuel is a graduate job-hunting, and the same bundle serves a future `job_interview` path unchanged.
+Two per path is a rule, not a coincidence — the dashboard is a fixed six-slot layout, so a path supplying one or three would break it. Dimensions may be shared between paths: `guest_interaction` and `classroom_interaction` both draw on `F003`, because answering a question is answering a question wherever you are standing.
 
-A dimension's value is the evidence-weighted mean mastery of its members, restricted to competencies the learner has actually attempted. **Every dimension, without exception**, and Confidence is the one that had to be argued for.
+**Every member of every dimension must be reachable at the band the learner is working in.** This is the constraint that shapes the list above, and it is not a detail. `F015 Presentation` is B2–C2; `F013 Discussion` and `F009 Expressing Opinions` are B1–C2; `P015 Expressiveness` — whose `P015.03` is named "Confidence" — is B2–C2. Earlier drafts built Presentation, Academic Discussion and Confidence out of exactly those, which at A2 meant three of eight slots that could never move. The A2-reachable Fluency competencies are `F001`, `F002`, `F003`, `F004`, `F005`, `F007` and `F020`, and every path dimension above is built from them. See [`../adr/0006-confidence-and-presentation-are-not-dimensions.md`](../adr/0006-confidence-and-presentation-are-not-dimensions.md).
 
-Confidence was originally specified as `P015.03` plus a `derived` array of raw delivery metrics — pause ratio, hesitation rate, mean turn length. That would have made it the one number on the dashboard sourced from something other than mastery, which is precisely the second source of truth this section exists to prevent. Instead the delivery metrics became an **evidence source**: pause ratio and hesitation rate computed from a turn's Whisper word timestamps produce an `observed` for the delivery-sensitive sub-competencies, those update mastery through the ordinary path in section 6, and Confidence is then a bundle like any other. It still moves visibly session to session, because the metrics feed it every session — but through the learner model rather than around it. *The exact member list beyond `P015.03` is content still to author, alongside the metric-to-competency mapping.*
+A dimension's value is the evidence-weighted mean mastery of its members, restricted to competencies the learner has actually attempted. **Every dimension, without exception.**
+
+### Delivery metrics are evidence, not a dimension
+
+Pause ratio, hesitation rate, mean turn length and response latency come out of a turn's fal Whisper word timestamps. They are real signals and they must not become a second source of truth on the dashboard, so they produce an `observed` for the sub-competencies they are evidence *about*, which then update mastery through the ordinary path in section 6:
+
+| Metric | Evidence for |
+| --- | --- |
+| Hesitation rate, filled pauses | `F020.05` Buying Thinking Time Naturally |
+| Response latency | `F003.*` Answering Questions |
+| Mean turn length | `F002.*` Describing, `F005.*` Storytelling |
+| Pause ratio, speech rate | `F001.05` Quick Recall |
+
+Every target is A2-reachable and lands inside Fluency, which is where `EX001`'s own evaluation block already files "Hesitation frequency" and "Speech rate". Note that `P013 Pausing & Chunking` is the intuitive home for pause ratio and is deliberately *not* used: it is B1–C2, and routing A2 evidence into it would recreate the unreachable-member problem this section exists to prevent. It becomes the right target once a learner is promoted.
+
+These metrics used to be gathered under a Confidence dimension. Measuring delivery and calling it confidence was a claim about the learner's internal state that the evidence does not support.
 
 Three display rules keep the numbers honest. A dimension with no attempted members shows "not yet assessed" rather than 0%. A dimension whose members all have `evidence_count = 1` is drawn with a wider uncertainty band. And **no dimension decays** — retrievability falls with time, mastery does not, so a learner returning after a month finds her Profile where she left it. That is deliberate: time-decay surfaces instead as a due count and the Improve ring, so the three learner-facing surfaces stay distinct — Rings mean showing up, the Profile means getting better, the due count means act now. Dropping someone's visible score for time passing rather than for anything they did is the mechanic Duolingo removed for being demoralising.
 
@@ -292,7 +307,7 @@ The learner is never asked to declare a CEFR level. Most don't know it and the o
 | Order | Template | Mode | Seeds |
 | --- | --- | --- | --- |
 | 1 | `EX001` Picture Description | monologue | Vocabulary, Grammar, baseline delivery metrics |
-| 2 | `EX007` Personal Questions | dialogue | Fluency, response latency, Confidence |
+| 2 | `EX007` Personal Questions | dialogue | Fluency, response latency, `F003.*` Answering Questions |
 | 3 | `EX009` Personal Experience | monologue | Narrative tense control, sentence length, Storytelling |
 
 Roughly four minutes of speech. Each targeted competency is written with `evidence_count = 1`, which is deliberately weak: `α = 1/(1+1) = 0.5`, so the second week of real sessions can move an estimate substantially. That is why the profile appears to improve quickly at first — not a trick, just a wide prior narrowing.
@@ -413,7 +428,7 @@ Note that `evaluation_metrics` is no longer prose. It is the target list joined 
 
 ## 10. Worked example: Hana
 
-**Profile:** A2, L1 Amharic, Life Path `university_success`, field software engineering, 20 min/day, feedback in Amharic. Day 1, no history.
+**Profile:** A2, L1 Amharic, age band 18–24, Life Path `university_success`, field software engineering, 20 min/day, corrections in English explained in Amharic. Day 1, no history.
 
 Load table gives A2 four sessions, two to three new concepts, two reviews. Day 1 has nothing due, so all slots go to new concepts. Life Path priority puts `A2-D01 Personal Life` first, and its practice context "Introducing yourself" is substituted to "Introducing yourself to a university class" — the mission theme.
 
@@ -471,8 +486,8 @@ dimension_member(dimension_id, competency_pattern, weight)
 stimulus_pool(id, template_id, target_set_key, theme, stimulus_type,
               asset_url, spec_json, created_at)
 
-learner_profile(learner_id, cefr, l1, life_path_id, study_field,
-                daily_minutes, feedback_language, goal_date)
+learner_profile(learner_id, cefr, l1, age_band, gender, life_path_id,
+                study_field, daily_minutes, feedback_language, goal_date)
 learner_competency(learner_id, competency_id, mastery, stability_days,
                    evidence_count, last_seen, last_template, last_theme)
 learner_error(learner_id, competency_id, tag, count, last_seen)
@@ -563,7 +578,7 @@ Each entry names the failure in the current design that it fixes.
 | 7 | Mastery update weighted by observation reliability | No defined path from performance to a Communication Profile number | Code only |
 | 8 | Retry trigger, scaffold ladder, prerequisite re-check on repeat failure | `Retry Rules` was a named but empty field | One ladder per template |
 | 9 | Life Path as domain priority + context substitution + vocabulary overlay + template preference | Two source documents disagreed on the primary organizing axis | 6 config files |
-| 10 | Profile Dimensions as named bundles: 5 fixed + 3 per Life Path | Eight dimensions and four skills were two incompatible scoring systems; two documents listed different eight | Config only |
+| 10 | Profile Dimensions as named bundles: 4 fixed + 2 per Life Path | Eight dimensions and four skills were two incompatible scoring systems, and three of the eight bundled competencies unreachable at A2 | Config only |
 | 11 | Day Plan as the "Today's Mission" container | Load table said 4–6 activities; persona doc said one 10-minute mission | Naming and grouping |
 | 12 | `sameTemplateAsLastTimeFor` penalty in template scoring | "Spaced retrieval in a new context" was an intention with no mechanism | Code only |
 
@@ -575,6 +590,7 @@ Entries 13 to 20 came out of a grilling session against this document. The five 
 | 14 | Asset availability as a soft term in `score(T)`, with a degrade-the-key fallback | A missing asset silently swapped the template after selection, making "the engine chose this" unfalsifiable | Code only |
 | 15 | The Profile reads only from mastery; decay surfaces as a due count | Dimensions had no decay story, and a learner away for a month saw an unchanged Profile with no prompt to return | Code only |
 | 16 | Delivery metrics become evidence on competencies, not a parallel scorer | Confidence was the one dimension not computed from the learner model, breaking section 8's own invariant | Metric-to-competency mapping |
+| 21 | Confidence and Presentation dropped; the Profile is 4 fixed + 2 per path | Three of eight dimensions bundled B1–C2 competencies an A2 learner can never attempt, so they could never move | Config only |
 | 17 | `turn` split from `attempt`; evidence counted per session-and-competency | Utterance data written to competency rows; a *failed* session with two retries reached the promotion floor | Schema |
 | 18 | `observed = correct / opportunities`; zero opportunities yields no evidence | The number every other quantity depends on had no definition, and silence would have scored zero | Evaluator prompt |
 | 19 | Placement decoupled from seeding via a global complexity read | Placement could never return a band above the one it happened to probe at | Code only |
@@ -590,12 +606,12 @@ Two things deliberately left unchanged: the exercise template prose stays as hum
 - **Pre-generation** is resolved by the Stimulus Pool in section 12: assets are built ahead, plans are not.
 - **What counts as evidence** is resolved in section 6: one session-and-competency pair, however many attempts.
 - **Where `observed` comes from** is resolved in section 6: an opportunity ratio from a structured evaluator return.
-- **How Confidence is computed** is resolved in section 8: an ordinary bundle, fed by delivery metrics through the learner model.
+- **How Confidence is computed** is resolved in section 8 by removing it: delivery metrics became evidence on A2-reachable competencies, and there is no Confidence dimension to compute.
 - **How placement finds a ceiling** is resolved in section 9: a global complexity read, independent of the probe band.
 
 ### Still open
 
 - **Segmental pronunciation** (`P001`–`P003`) has no scoring path with the current API stack. The minimal-pair-through-transcription proxy covers deliberately probed sounds only. Those competencies are marked `observable: false` so the engine never targets what it cannot grade, and they are excluded from the Pronunciation dimension's mean rather than counted as zero.
 - **Interruption handling.** The template model assumes the learner completes a turn. Addis AI's Realtime mode allows the coach to interrupt, which no current template describes. Out of scope for the hackathon; revisit if free-talk mode becomes a graded surface.
-- **The Confidence member list.** Section 8 settles the mechanism but not the content: which delivery-sensitive sub-competencies belong in the bundle beyond `P015.03`, and how pause ratio and hesitation rate map onto an `observed` for each. Authoring, not design.
+- **Turning a delivery metric into an `observed`.** Section 8 fixes which competency each metric is evidence for, but not the thresholds: what hesitation rate counts as a correct use of `F020.05`, and over what window. Authoring, not design.
 - **Pool projection tuning.** How far ahead the nightly job should look, and how wide to cast for themes, is a cost-versus-miss-rate tradeoff with no data behind it yet. The fallback chain means getting it wrong degrades gracefully.

@@ -94,9 +94,17 @@ This feels personal.
 
 # **Onboarding** 
 
-The platform asks four questions. 
+The platform asks a short series of questions. 
 
 Not a placement test. 
+
+Name 
+
+Hana 
+
+Age 
+
+18 to 24 
 
 Native Language 
 
@@ -110,13 +118,13 @@ Study Field
 
 Software Engineering 
 
-Weekly Time 
+Daily Time 
 
 20 minutes/day 
 
-Preferred Feedback 
+Corrections 
 
-Amharic 
+English, explained in Amharic 
 
 Notice what it never asks. 
 
@@ -160,9 +168,9 @@ Pronunciation 58%
 
 Fluency 44% 
 
-Confidence 39% 
+Classroom Interaction 41% 
 
-Presentation 22% 
+Explaining Your Work 29% 
 
 These first numbers are estimates. 
 
@@ -198,7 +206,7 @@ Four activities
 
 Today's Focus 
 
-Confidence 
+Classroom Interaction 
 
 Target Grammar 
 
@@ -322,13 +330,13 @@ The dashboard says
 
 ## **Today You Improved** 
 
-Confidence 
+Fluency 
 
-39% 
+44% 
 
 → 
 
-47% 
+53% 
 
 Grammar 
 
@@ -346,9 +354,9 @@ Pronunciation
 
 61% 
 
-Fluency 
+Classroom Interaction 
 
-44% 
+41% 
 
 → 
 
@@ -434,17 +442,17 @@ A harder question.
 
 Now Hana has 
 
-Confidence 
+Fluency 
 
-39% 
+44% 
 
 → 
 
 74% 
 
-Presentation 
+Explaining Your Work 
 
-22% 
+29% 
 
 → 
 
@@ -550,21 +558,21 @@ After two weeks
 
 Communication Dashboard 
 
-Guest Greeting 
+Guest Interaction 
 
 95% 
 
 Complaint Handling 64% 
 
-Professional Vocabulary 
+Vocabulary 
 
 78% 
 
-Confidence 
+Fluency 
 
 81% 
 
-Interview Readiness 
+Grammar 
 
 82% 
 
@@ -658,7 +666,8 @@ Every beat above is produced by the engine in [`../architecture/session-engine.m
 
 | Story beat | System mechanism |
 | --- | --- |
-| Onboarding never asks for a level | Life Path, L1, study field and daily budget are the generator's inputs; level is measured, not declared |
+| Onboarding never asks for a level | Life Path, L1, age band, study field and daily budget are the generator's inputs; level is measured, not declared |
+| Every question earns its screen | Each one writes a `learner_profile` column that `buildDayPlan` reads. Gender is the deliberate near-exception and is documented as such in `onboarding.md` |
 | The four-minute assessment | Three sessions (`EX001`, `EX007`, `EX009`) seed baseline mastery with `evidence_count = 1` |
 | "These numbers move quickly at first" | Update rate is `α = max(0.15, 1/(1+evidence_count))`, so early evidence moves the estimate hard and later evidence refines it |
 | Today's Mission, 20 minutes, four activities | A2 row of the learning-load table: 4 sessions, 2–3 new concepts, 2 reviews |
@@ -667,17 +676,19 @@ Every beat above is produced by the engine in [`../architecture/session-engine.m
 | The Amharic correction | Addis AI translation and TTS; the English model sentence is spoken by the fal English voice |
 | The retry | `observed < 0.6` triggers scaffold rung one; the retry scores at 0.6 weight because a scaffolded success is weaker evidence |
 | "What changed?" | Learning-engine stage six; a self-report matching the detected error tag raises confidence in the estimate |
-| Confidence 39% → 47% | An ordinary Profile Dimension — a bundle of delivery sub-competencies. Pause ratio, hesitation rate and mean turn length from fal Whisper word timestamps are the *evidence* that moves their mastery, so the number never bypasses the learner model |
+| Fluency 44% → 53% | Pause ratio, hesitation rate and mean turn length from fal Whisper word timestamps become an `observed` on `F020.05`, `F001.05`, `F002.*` and `F005.*`. Those update mastery the ordinary way, and Fluency is recomputed from them, so the number never bypasses the learner model |
 | Sentence length 6 → 11 words | Verbatim word count over sentence count, both from the word-level transcript |
 | **Day Three, different scene, same grammar** | `G006.01` retrievability drops below 0.85; the `sameTemplateAsLastTimeFor` penalty forces `EX018` instead of `EX001` |
 | Week Two asks a harder question | Same domain, higher-CEFR sub-competencies now unlocked by the prerequisite graph |
-| Presentation 22% → 59% | Path dimension for `university_success`, bundled over `F015.*` |
-| Samuel's Complaint Handling 64% | Path dimension for `hospitality`, bundled over `F011.*` and `F020.*` |
+| Classroom Interaction 41% → 49% | Path dimension for `university_success`, bundled over `F003.*` and `F004.*` — answering and asking, both A2-reachable |
+| Explaining Your Work 29% → 59% | Path dimension for `university_success`, bundled over `F002.*` and `F007.*` |
+| Samuel's Complaint Handling 64% | Path dimension for `hospitality`, bundled over `F020.*` and `F011.*` |
+| Why there is no Confidence score | Delivery is measurable; confidence is an inference about an internal state. `P015.03 Confidence` is B2–C2 anyway, so at A2 the dimension could never have moved — see `../adr/0006-confidence-and-presentation-are-not-dimensions.md` |
 | "The same engine" | Both learners run the same domains and libraries; only the Life Path skin differs |
 
 ## Demo script — five minutes
 
-1. **Onboarding, 30 seconds.** Four questions. Point out that level is never asked.
+1. **Onboarding, 30 seconds.** Skip through the questions. Point out that level is never asked — and that Life Path is the first thing we do ask.
 2. **Assessment, 60 seconds.** Show the profile appear from four minutes of speech. Pre-record this; do not run it live.
 3. **The mission, 90 seconds.** Hana speaks, the AI waits, the error is caught, the Amharic correction plays, she retries and succeeds.
 4. **"What changed?", 20 seconds.** She names her own error. Say the words "immediate feedback, metacognition, spaced retrieval" here and nowhere else.

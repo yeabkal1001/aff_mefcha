@@ -13,14 +13,18 @@ import {
   Code2,
   ConciergeBell,
   GraduationCap,
+  MessagesSquare,
+  PenLine,
   Plane,
   Stethoscope,
   type LucideIcon,
 } from "lucide-react";
 
 export type LifePathId =
+  | "general_english"
   | "university_success"
   | "hospitality"
+  | "custom"
   | "job_interview"
   | "study_abroad"
   | "software_engineering"
@@ -33,7 +37,12 @@ export interface LifePath {
   icon: LucideIcon;
   /** Configured paths have an overlay behind them; planned ones do not. */
   live: boolean;
-  /** The three Profile Dimensions this path supplies on top of the five fixed. */
+  /**
+   * The two Profile Dimensions this path supplies on top of the four fixed.
+   * Every member has to be reachable at the learner's band, which is why
+   * these are built from the A2 fluency competencies — F001 through F005,
+   * F007 and F020. See docs/adr/0006-*.md.
+   */
   dimensions: string[];
   /** Step 5 is conditioned on the chosen path. */
   fieldQuestion: string;
@@ -45,16 +54,36 @@ export interface LifePath {
    * learner practises it in.
    */
   firstMission: string;
+  /** Shown as the sensible starting point when nothing else fits. */
+  isDefault?: boolean;
+  /**
+   * The learner writes their own goal instead of picking a field. There is no
+   * authored overlay behind it — see the note in docs/product/onboarding.md.
+   */
+  isCustom?: boolean;
 }
 
 export const lifePaths: LifePath[] = [
+  {
+    id: "general_english",
+    name: "Everyday English",
+    tagline: "Conversations, plans, opinions — the English an ordinary week needs.",
+    icon: MessagesSquare,
+    live: true,
+    isDefault: true,
+    dimensions: ["Everyday Conversation", "Telling Your Story"],
+    fieldQuestion: "What do you talk about most?",
+    fieldHint: "Your coach will build conversations around it.",
+    fieldSuggestions: ["Work", "Family and friends", "Travel", "News", "Football"],
+    firstMission: "Introducing yourself to someone new",
+  },
   {
     id: "university_success",
     name: "University Success",
     tagline: "Presentations, seminars, group projects, talking to professors.",
     icon: GraduationCap,
     live: true,
-    dimensions: ["Presentation", "Academic Discussion", "Classroom Interaction"],
+    dimensions: ["Classroom Interaction", "Explaining Your Work"],
     fieldQuestion: "What are you studying?",
     fieldHint: "Your coach will use your subject in every conversation.",
     fieldSuggestions: [
@@ -72,7 +101,7 @@ export const lifePaths: LifePath[] = [
     tagline: "Guests, reservations, complaints, and the interview to get there.",
     icon: ConciergeBell,
     live: true,
-    dimensions: ["Guest Interaction", "Complaint Handling", "Interview Readiness"],
+    dimensions: ["Guest Interaction", "Complaint Handling"],
     fieldQuestion: "What role are you aiming for?",
     fieldHint: "Your coach will rehearse the conversations that role needs.",
     fieldSuggestions: [
@@ -85,12 +114,26 @@ export const lifePaths: LifePath[] = [
     firstMission: "Welcoming a guest at the front desk",
   },
   {
+    id: "custom",
+    name: "Something else",
+    tagline: "Tell your coach what you are preparing for, in your own words.",
+    icon: PenLine,
+    live: true,
+    isCustom: true,
+    dimensions: ["Everyday Conversation", "Telling Your Story"],
+    fieldQuestion: "What are you preparing for?",
+    fieldHint:
+      "A sentence is enough. Your coach builds the scenes from what you write.",
+    fieldSuggestions: [],
+    firstMission: "Talking about what you are working towards",
+  },
+  {
     id: "job_interview",
     name: "Job Interview Success",
     tagline: "Introductions, behavioural questions, salary conversations.",
     icon: Briefcase,
     live: false,
-    dimensions: ["Interview Readiness", "Professional Vocabulary", "Confidence"],
+    dimensions: ["Interview Readiness", "Telling Your Story"],
     fieldQuestion: "What role are you applying for?",
     fieldHint: "Your coach will rehearse that interview with you.",
     fieldSuggestions: [],
@@ -102,7 +145,7 @@ export const lifePaths: LifePath[] = [
     tagline: "Visa interviews, airports, orientation week.",
     icon: Plane,
     live: false,
-    dimensions: ["Visa Interview", "Travel Navigation", "Academic Communication"],
+    dimensions: ["Visa Interview", "Travel Navigation"],
     fieldQuestion: "Where are you heading?",
     fieldHint: "Your coach will prepare you for that journey.",
     fieldSuggestions: [],
@@ -114,7 +157,7 @@ export const lifePaths: LifePath[] = [
     tagline: "Stand-ups, code reviews, explaining what you built.",
     icon: Code2,
     live: false,
-    dimensions: ["Stand-up Fluency", "Technical Explanation", "Code Review"],
+    dimensions: ["Technical Explanation", "Stand-up Fluency"],
     fieldQuestion: "What do you work on?",
     fieldHint: "Your coach will use your stack in every scenario.",
     fieldSuggestions: [],
@@ -126,7 +169,7 @@ export const lifePaths: LifePath[] = [
     tagline: "Patients, colleagues, explaining procedures clearly.",
     icon: Stethoscope,
     live: false,
-    dimensions: ["Patient Communication", "Clinical Teamwork", "Procedure Explanation"],
+    dimensions: ["Patient Communication", "Procedure Explanation"],
     fieldQuestion: "What is your speciality?",
     fieldHint: "Your coach will use it to build realistic cases.",
     fieldSuggestions: [],
@@ -201,7 +244,39 @@ export const dailyBudgets: DailyBudget[] = [
   { minutes: 45, label: "45 min", detail: "Six activities, for a deadline" },
 ];
 
-export type FeedbackLanguage = "english" | "l1" | "both";
+/**
+ * Amharic-only was removed deliberately. A correction given entirely in the
+ * learner's own language never hands them the English sentence to repeat, and
+ * the retry is the step the whole immediate-feedback loop rests on.
+ */
+export type FeedbackLanguage = "english" | "both";
+
+export interface AgeBand {
+  id: string;
+  label: string;
+  /** What the band changes about the scenes the generator writes. */
+  detail: string;
+}
+
+/**
+ * Age is banded rather than exact because register is all it drives: a
+ * fifteen-year-old and a forty-year-old should not be handed the same
+ * cafeteria scene, but nothing downstream needs a birthday.
+ */
+export const ageBands: AgeBand[] = [
+  { id: "13_17", label: "13 to 17", detail: "School and family scenes" },
+  { id: "18_24", label: "18 to 24", detail: "University and first jobs" },
+  { id: "25_34", label: "25 to 34", detail: "Work and professional life" },
+  { id: "35_plus", label: "35 or older", detail: "Work, family and community" },
+];
+
+export type Gender = "woman" | "man" | "unspecified";
+
+export const genders: { id: Gender; label: string }[] = [
+  { id: "woman", label: "Woman" },
+  { id: "man", label: "Man" },
+  { id: "unspecified", label: "Prefer not to say" },
+];
 
 export interface GoalHorizon {
   id: string;
@@ -224,6 +299,10 @@ export const goalHorizons: GoalHorizon[] = [
  */
 export interface OnboardingDraft {
   name: string;
+  /** Sets scenario framing and vocabulary register. */
+  ageBand: string | null;
+  /** Only affects how the coach refers to the learner. */
+  gender: Gender | null;
   l1: string | null;
   lifePath: LifePathId | null;
   studyField: string;
@@ -238,6 +317,8 @@ export interface OnboardingDraft {
 
 export const emptyDraft: OnboardingDraft = {
   name: "",
+  ageBand: null,
+  gender: null,
   l1: null,
   lifePath: null,
   studyField: "",
@@ -251,6 +332,8 @@ export const emptyDraft: OnboardingDraft = {
 /** The ordered flow. `docs/product/onboarding.md` explains each one. */
 export const ONBOARDING_STEPS = [
   "name",
+  "age",
+  "gender",
   "language",
   "path",
   "field",

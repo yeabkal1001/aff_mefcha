@@ -9,11 +9,18 @@ import { AmbientBackground } from "@/components/session/ambient-background";
 import { CoachGreeting } from "@/components/session/coach-greeting";
 import { CorrectionCard } from "@/components/session/correction-card";
 import { LessonHeader } from "@/components/session/lesson-header";
+import { LiveTranscript } from "@/components/session/live-transcript";
 import { SessionControls } from "@/components/session/session-controls";
+import { StimulusImage } from "@/components/session/stimulus-image";
 import { VoiceOrb } from "@/components/session/voice-orb";
 import { useOnboardingDraft } from "@/hooks/use-onboarding-draft";
 import { useSession } from "@/hooks/use-session";
-import { coachName, greeting, lessonTopic } from "@/lib/mock-data";
+import {
+  coachName,
+  currentSession,
+  greeting,
+  lessonTopic,
+} from "@/lib/mock-data";
 import { lifePathById } from "@/lib/onboarding";
 
 export default function PracticePage() {
@@ -25,12 +32,15 @@ export default function PracticePage() {
     state,
     correction,
     coachLine,
+    transcript,
     speakingMinutes,
     correctionCount,
     toggleListening,
     endSession,
     dismissCorrection,
   } = useSession();
+
+  const needsImage = currentSession.stimulusType === "image";
 
   // "Hi Hana. I understand you're preparing for university." The onboarding
   // answers are what make the first line land as personal.
@@ -60,14 +70,38 @@ export default function PracticePage() {
             in a lecture hall, Samuel in a hotel lobby. */}
         <LessonHeader topic={path?.firstMission ?? lessonTopic} />
 
-        <div className="flex flex-col items-center justify-center gap-24">
-          <VoiceOrb state={state} />
+        <div
+          className={
+            needsImage
+              ? "flex flex-col items-center justify-center gap-8"
+              : "flex flex-col items-center justify-center gap-24"
+          }
+        >
+          {/* A picture session gives the orb less room — the thing to talk
+              about should be the largest object on screen, not the coach. The
+              instruction stays put so the task survives the coach saying it
+              once and moving on. */}
+          {needsImage && (
+            <div className="flex flex-col items-center gap-3">
+              <StimulusImage className="w-full max-w-[17rem]" />
+              <p className="max-w-[22rem] text-center text-[0.8125rem] leading-relaxed text-muted-foreground">
+                {currentSession.instruction}
+              </p>
+            </div>
+          )}
 
-          {/* Fixed height so swapping the greeting for a correction does not
-              shift the orb above it. */}
+          <VoiceOrb
+            state={state}
+            className={needsImage ? "[--orb-size:7rem]" : undefined}
+          />
+
+          {/* Fixed height so swapping between the three states below does not
+              shift the orb above them. */}
           <div className="flex min-h-[8.5rem] w-full max-w-[36rem] items-start justify-center">
             <AnimatePresence mode="wait">
-              {correction ? (
+              {state === "listening" ? (
+                <LiveTranscript key="transcript" text={transcript} />
+              ) : correction ? (
                 <CorrectionCard
                   key={correction.id}
                   correction={correction}

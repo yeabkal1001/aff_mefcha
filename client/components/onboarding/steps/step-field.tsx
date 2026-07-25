@@ -8,11 +8,16 @@ import { cn } from "@/lib/utils";
 
 import type { StepProps } from "./types";
 
-/** The question itself is conditioned on the Life Path chosen a step earlier. */
+/**
+ * The question is conditioned on the Life Path chosen a step earlier. On the
+ * custom path this is where the learner writes their goal in full, since
+ * there is no authored field list to offer them.
+ */
 export function StepField({ index, count, onNext, onBack }: StepProps) {
   const { lifePath, studyField } = useOnboardingDraft();
   const path = lifePathById(lifePath);
   const ready = studyField.trim().length > 0;
+  const custom = path?.isCustom ?? false;
 
   return (
     <OnboardingShell
@@ -35,11 +40,27 @@ export function StepField({ index, count, onNext, onBack }: StepProps) {
           autoFocus
           value={studyField}
           onChange={(event) => updateDraft({ studyField: event.target.value })}
-          placeholder="Software Engineering"
+          placeholder={
+            custom
+              ? "Speaking at my sister's wedding in December"
+              : "Software Engineering"
+          }
           aria-label={path?.fieldQuestion ?? "Your field"}
-          className="h-12 rounded-xl border-panel-border bg-panel text-center text-[1rem] backdrop-blur-xl"
+          className={
+            custom
+              ? "h-12 rounded-xl border-panel-border bg-panel px-4 text-[0.9375rem] backdrop-blur-xl"
+              : "h-12 rounded-xl border-panel-border bg-panel text-center text-[1rem] backdrop-blur-xl"
+          }
         />
       </form>
+
+      {custom && (
+        <p className="mt-3 text-center text-[0.75rem] leading-relaxed text-muted-foreground">
+          A custom goal has no hand-written curriculum behind it yet, so your
+          coach builds the scenes from what you wrote. The skills underneath are
+          the same ones every other path practises.
+        </p>
+      )}
 
       {path && path.fieldSuggestions.length > 0 && (
         <div className="mt-3 flex flex-wrap justify-center gap-1.5">

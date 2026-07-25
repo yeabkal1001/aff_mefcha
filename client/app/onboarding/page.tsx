@@ -3,9 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { StepAge } from "@/components/onboarding/steps/step-age";
 import { StepAssessment } from "@/components/onboarding/steps/step-assessment";
 import { StepFeedback } from "@/components/onboarding/steps/step-feedback";
 import { StepField } from "@/components/onboarding/steps/step-field";
+import { StepGender } from "@/components/onboarding/steps/step-gender";
 import { StepGoal } from "@/components/onboarding/steps/step-goal";
 import { StepLanguage } from "@/components/onboarding/steps/step-language";
 import { StepMic } from "@/components/onboarding/steps/step-mic";
@@ -18,6 +20,8 @@ import { ONBOARDING_STEPS } from "@/lib/onboarding";
 
 const SCREENS: Record<string, (props: StepProps) => React.ReactElement> = {
   name: StepName,
+  age: StepAge,
+  gender: StepGender,
   language: StepLanguage,
   path: StepPath,
   field: StepField,

@@ -1,10 +1,10 @@
 "use client";
 
-import { ImageIcon } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
 
 import { AmbientBackground } from "@/components/session/ambient-background";
+import { StimulusImage } from "@/components/session/stimulus-image";
 import { VoiceOrb } from "@/components/session/voice-orb";
 import { Button } from "@/components/ui/button";
 import { updateDraft } from "@/hooks/use-onboarding-draft";
@@ -113,16 +113,8 @@ function AssessmentTurn({
         {prompt.instruction}
       </p>
 
-      {/* The picture-description prompt needs a stimulus. The real one comes
-          from the fal image model, themed by the learner's Life Path. */}
       {prompt.template === "EX001" && (
-        <div className="surface-panel mt-6 grid h-36 w-full max-w-[20rem] place-items-center rounded-2xl bg-gradient-to-br from-ambient-blush via-ambient-lilac to-ambient-sky">
-          <ImageIcon
-            className="size-7 text-foreground/25"
-            strokeWidth={1.5}
-            aria-label="Photo to describe"
-          />
-        </div>
+        <StimulusImage className="mt-6 w-full max-w-[19rem]" />
       )}
 
       <div className="mt-9 flex h-16 flex-col items-center justify-center gap-3">

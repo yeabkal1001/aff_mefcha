@@ -36,7 +36,7 @@ export function StepPath({ index, count, onNext, onBack }: StepProps) {
       <div
         role="radiogroup"
         aria-label="Life Path"
-        className="grid gap-2.5 sm:grid-cols-2"
+        className="grid gap-2 sm:grid-cols-2"
       >
         {lifePaths.map((path) => {
           const Icon = path.icon;
@@ -51,7 +51,7 @@ export function StepPath({ index, count, onNext, onBack }: StepProps) {
               disabled={!path.live}
               onClick={() => updateDraft({ lifePath: path.id })}
               className={cn(
-                "surface-panel relative flex items-start gap-3 rounded-xl p-3.5 text-left",
+                "surface-panel relative flex items-start gap-3 rounded-xl p-3 text-left",
                 "transition-[border-color,transform,box-shadow] duration-200",
                 "hover:border-foreground/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                 selected &&
@@ -59,11 +59,15 @@ export function StepPath({ index, count, onNext, onBack }: StepProps) {
                 !path.live && "pointer-events-none opacity-40",
               )}
             >
-              {!path.live && (
+              {!path.live ? (
                 <span className="absolute right-3 top-3 rounded-full bg-foreground/[0.06] px-2 py-0.5 text-[0.5625rem] font-semibold uppercase tracking-wide text-muted-foreground">
                   Soon
                 </span>
-              )}
+              ) : path.isDefault ? (
+                <span className="absolute right-3 top-3 rounded-full bg-foreground/[0.06] px-2 py-0.5 text-[0.5625rem] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Default
+                </span>
+              ) : null}
 
               <span
                 className={cn(
@@ -90,7 +94,7 @@ export function StepPath({ index, count, onNext, onBack }: StepProps) {
       </div>
 
       {/* Held outside the grid so choosing a path cannot reflow it. */}
-      <div className="mt-4 flex min-h-[1.75rem] flex-wrap items-center justify-center gap-1.5">
+      <div className="mt-3 flex min-h-[1.75rem] flex-wrap items-center justify-center gap-1.5">
         {chosen && (
           <>
             <span className="text-[0.75rem] text-muted-foreground">

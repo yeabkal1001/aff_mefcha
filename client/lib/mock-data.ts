@@ -157,21 +157,41 @@ export interface Dimension {
 }
 
 /**
- * The profile as it stands after the assessment. Every value here rests on
- * `evidence_count = 1`, so the reveal screen draws it as an estimate rather
- * than a verdict. The two dimensions with no value are the honest case the
- * docs insist on: no evidence reads as "not yet assessed", never 0%.
+ * The profile as it stands after the assessment: four fixed dimensions plus
+ * two from the Life Path. Every value rests on `evidence_count = 1`, so the
+ * reveal screen draws it as an estimate rather than a verdict.
+ *
+ * There is no Confidence or Presentation dimension. Both were bundles of
+ * B2–C2 competencies that an A2 learner cannot attempt, so they could never
+ * move — see docs/adr/0006-confidence-and-presentation-are-not-dimensions.md.
  */
 export const openingProfile: Dimension[] = [
   { id: "grammar", label: "Grammar", value: 0.62, fixed: true },
   { id: "vocabulary", label: "Vocabulary", value: 0.67, fixed: true },
   { id: "pronunciation", label: "Pronunciation", value: 0.58, fixed: true },
   { id: "fluency", label: "Fluency", value: 0.44, fixed: true },
-  { id: "confidence", label: "Confidence", value: 0.39, fixed: true },
-  { id: "presentation", label: "Presentation", value: 0.22, fixed: false },
-  { id: "academic_discussion", label: "Academic Discussion", value: null, fixed: false },
-  { id: "classroom_interaction", label: "Classroom Interaction", value: null, fixed: false },
+  { id: "classroom_interaction", label: "Classroom Interaction", value: 0.41, fixed: false },
+  { id: "explaining_your_work", label: "Explaining Your Work", value: 0.29, fixed: false },
 ];
+
+/**
+ * One activity inside today's mission. `template` is what decides the shape of
+ * the screen: `EX001` needs a picture on it, `EX007` and `EX018` do not.
+ *
+ * The learner never sees any of these IDs. They see one scene.
+ */
+export interface PracticeSession {
+  template: string;
+  /** What the learner is asked to do, in the coach's voice. */
+  instruction: string;
+  stimulusType: "image" | "scenario" | "none";
+}
+
+export const currentSession: PracticeSession = {
+  template: "EX001",
+  instruction: "Look at this. Tell me what is happening — as much as you can see.",
+  stimulusType: "image",
+};
 
 export interface DimensionGain {
   label: string;
@@ -184,10 +204,10 @@ export interface DimensionGain {
  * the learner has something to lose by the time we ask for an email.
  */
 export const firstSessionGains: DimensionGain[] = [
-  { label: "Confidence", from: 0.39, to: 0.47 },
+  { label: "Fluency", from: 0.44, to: 0.53 },
   { label: "Grammar", from: 0.62, to: 0.68 },
   { label: "Pronunciation", from: 0.58, to: 0.61 },
-  { label: "Fluency", from: 0.44, to: 0.49 },
+  { label: "Classroom Interaction", from: 0.41, to: 0.49 },
 ];
 
 /** Verbatim word count over sentence count, from the word-level transcript. */
