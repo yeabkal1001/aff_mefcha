@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # Demo Rehearsal
 
-The demo is a five-minute performance with six beats, scripted at the end of `Persona.md`. Rehearsal is where you find out which beats depend on something you cannot control from the table.
+The demo is a five-minute performance with six beats, scripted at the end of `docs/product/persona.md`. Rehearsal is where you find out which beats depend on something you cannot control from the table.
 
 Run this at least three hours before the pitch. Found problems need time to become fallbacks.
 

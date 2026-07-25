@@ -654,7 +654,7 @@ That transforms the product from **"an app that teaches English"** into **"an AI
 
 # **Appendix — What the story is actually doing**
 
-Every beat above is produced by the engine in `Session_Generation_Engine.md`. Nothing in the demo is scripted. This table is for us, not for the judges, and it's what we point at if a technical judge asks "is any of this real?"
+Every beat above is produced by the engine in [`../architecture/session-engine.md`](../architecture/session-engine.md). Nothing in the demo is scripted. This table is for us, not for the judges, and it's what we point at if a technical judge asks "is any of this real?"
 
 | Story beat | System mechanism |
 | --- | --- |

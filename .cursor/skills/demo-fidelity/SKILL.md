@@ -48,7 +48,7 @@ Pre-decided for this MVP. Follow it unless the work genuinely falls outside; the
 **Cut**
 
 - Accounts, auth, payments.
-- The 27 unauthored domains and 15 unauthored templates.
+- The 29 domains and 15 templates outside the demo slice.
 - Realtime free-talk mode.
 - Mobile layout.
 
@@ -76,5 +76,5 @@ Claiming a prop is live is the only unrecoverable mistake in a demo. Judges forg
 
 - Every item in the current task is classified, out loud, before code is written.
 - Each prop has a `// PROP:` marker naming the real thing behind it.
-- Each prop has its one-sentence narration written into `Persona.md`'s demo script.
+- Each prop has its one-sentence narration written into the demo script at the end of `docs/product/persona.md`.
 - No prop carries a measurement claim or the Day Three claim.

@@ -5,9 +5,9 @@ description: Apply the project's canonical vocabulary, IDs, and schema when writ
 
 # Coach Canon
 
-Five design documents already fixed the vocabulary of this product. Code that renames those concepts forces a translation step in every future session and quietly splits the model in two. Bind to the canon at the moment of naming.
+The design documents already fixed the vocabulary of this product. Code that renames those concepts forces a translation step in every future session and quietly splits the model in two. Bind to the canon at the moment of naming.
 
-`CONTEXT.md` holds the full glossary. The bindings below are the ones code gets wrong.
+`CONTEXT.md` at the repo root holds the full glossary. The bindings below are the ones code gets wrong.
 
 ## Naming bindings
 
@@ -43,12 +43,15 @@ Parent competencies (`G006`) appear in curriculum requirements and template `eli
 
 | Question | Read |
 | --- | --- |
-| What is taught, and the content itself | `AI English Practice Documentation.md`, seed data in Appendix A |
-| How a session is assembled, scored, scheduled | `Session_Generation_Engine.md` |
-| Which API to call and how | `API_Integration_Plan.md` |
-| What the demo must show | `Persona.md` |
+| What a word means | `CONTEXT.md` |
+| The seed data the demo runs on | `docs/curriculum/content-pack-a2-d01.md` |
+| What is taught, in full | `docs/curriculum/` |
+| How a session is assembled, scored, scheduled | `docs/architecture/session-engine.md` |
+| Which API to call and how | `docs/architecture/integrations.md` |
+| What the demo must show | `docs/product/persona.md` |
+| Why a decision was made | `docs/adr/` |
 
-On a mechanics conflict, `Session_Generation_Engine.md` wins. On a story conflict, `Persona.md` wins.
+On a mechanics conflict, `session-engine.md` wins. On a story conflict, `persona.md` wins. On the meaning of a word, `CONTEXT.md` wins.
 
 ## Computed, never stored
 

@@ -2,7 +2,7 @@
 
 How the Master Competency Libraries, Layer 1 Curriculum, and Layer 2 Exercise Templates connect so that a complete, personalized session is assembled automatically from a learner profile.
 
-This extends `AI English Practice Documentation.md`. It does not replace the libraries, the curriculum, or the templates — it makes them addressable to each other. Every change is listed with its justification in the final section.
+This extends the curriculum documents in [`../curriculum/`](../curriculum/). It does not replace the libraries, the domains, or the templates — it makes them addressable to each other. Every change is listed with its justification in the final section.
 
 ---
 
@@ -222,7 +222,7 @@ The `weight` term is why the `measures` reliability score exists: evidence from 
 
 ## 7. Upgrade 6 — Life Path as a context skin
 
-`Persona.md` argues the primary organizing choice should be *why* the learner is here, not their level. The curriculum is organized by level. Both can be true, because they are different axes: **CEFR sets complexity, the Life Path sets context.**
+[`../product/persona.md`](../product/persona.md) argues the primary organizing choice should be *why* the learner is here, not their level. The curriculum is organized by level. Both can be true, because they are different axes: **CEFR sets complexity, the Life Path sets context.**
 
 A Life Path never duplicates curriculum. It is four overlays on the existing one:
 
@@ -256,13 +256,18 @@ The MVP document promises eight dimensions; the library has four skills. Rather 
 { "dimension": "grammar",       "fixed": true,  "members": ["G*"] }
 { "dimension": "confidence",    "fixed": true,  "members": ["P015.03", "<delivery fluency subs>"] }
 
-{ "dimension": "presentation",       "life_path": "university_success", "members": ["F015.*"] }
-{ "dimension": "academic_discussion","life_path": "university_success", "members": ["F013.*", "F009.*"] }
-{ "dimension": "complaint_handling", "life_path": "hospitality",        "members": ["F011.*", "F020.*"] }
-{ "dimension": "interview_readiness","life_path": "job_interview",      "members": ["F003.*", "F009.*", "F018.*"] }
+{ "dimension": "presentation",          "life_path": "university_success", "members": ["F015.*"] }
+{ "dimension": "academic_discussion",   "life_path": "university_success", "members": ["F013.*", "F009.*"] }
+{ "dimension": "classroom_interaction", "life_path": "university_success", "members": ["F004.*", "F019.*"] }
+
+{ "dimension": "guest_interaction",     "life_path": "hospitality",        "members": ["F007.*", "F019.*"] }
+{ "dimension": "complaint_handling",    "life_path": "hospitality",        "members": ["F011.*", "F020.*"] }
+{ "dimension": "interview_readiness",   "life_path": "hospitality",        "members": ["F003.*", "F009.*", "F018.*"] }
 ```
 
-Every learner sees **five fixed dimensions** — Grammar, Vocabulary, Pronunciation, Fluency, Confidence — plus **three supplied by their Life Path**. That is the promised eight, and it explains why the source documents listed different sets: they were describing different learners. Hana's profile shows Presentation because she is on `university_success`; Samuel's shows Complaint Handling because he is on `hospitality`. Neither list was wrong.
+Every learner sees **five fixed dimensions** — Grammar, Vocabulary, Pronunciation, Fluency, Confidence — plus **exactly three supplied by their Life Path**. That is the promised eight, and it explains why the source documents listed different sets: they were describing different learners. Hana sees Presentation, Academic Discussion and Classroom Interaction because she is on `university_success`; Samuel sees Guest Interaction, Complaint Handling and Interview Readiness because he is on `hospitality`. Neither list was wrong.
+
+Three per path is a rule, not a coincidence — the dashboard is a fixed eight-slot layout, so a path supplying two or four would break it. Dimensions may be shared between paths: `interview_readiness` belongs to `hospitality` here because Samuel is a graduate job-hunting, and the same bundle serves a future `job_interview` path unchanged.
 
 A dimension's value is the evidence-weighted mean mastery of its members, restricted to competencies the learner has actually attempted. **Every dimension, without exception**, and Confidence is the one that had to be argued for.
 
@@ -432,7 +437,7 @@ Template selection for session two, targeting `G006.01` + `V001.05`:
 
 Hana says *"I am study software engineering."* The evaluator matches `missing_participle` from `G006.01.common_errors` deterministically — no open-ended judgement needed. `observed = 0.3`, below the 0.6 trigger, so a retry fires at scaffold rung one. Feedback is delivered in Amharic through Addis AI TTS; the model English sentence is spoken by the fal English voice.
 
-She retries correctly. Mastery updates with `α = 1.0` capped at first evidence, `weight = 0.75 × 0.6` for the scaffold, giving roughly 0.34; `stability_days` rises to about 1.7, so `G006.01` comes due in roughly two days — and when it does, the `sameTemplateAsLastTimeFor` penalty pushes the selector toward `EX018` with a different theme. That is the week-two callback in `Persona.md`, produced by the scheduler rather than scripted.
+She retries correctly. Mastery updates with `α = 1.0` capped at first evidence, `weight = 0.75 × 0.6` for the scaffold, giving roughly 0.34; `stability_days` rises to about 1.7, so `G006.01` comes due in roughly two days — and when it does, the `sameTemplateAsLastTimeFor` penalty pushes the selector toward `EX018` with a different theme. That is the week-two callback in [`../product/persona.md`](../product/persona.md), produced by the scheduler rather than scripted.
 
 ---
 
@@ -498,7 +503,7 @@ The first three groups plus `stimulus_pool` are static and shared by all learner
 
 ## 12. Stimulus generation, and where the APIs attach
 
-The `stimulus_type` field routes directly to the services in `API_Integration_Plan.md`:
+The `stimulus_type` field routes directly to the services in [`integrations.md`](./integrations.md):
 
 | Stimulus type | Source | Templates |
 | --- | --- | --- |
@@ -529,7 +534,7 @@ Queue the missing asset in the background as you go, so the same miss never happ
 
 ## 13. Hackathon slice
 
-Ninety-six competencies, thirty domains and eighteen templates is a roadmap. To prove this engine works in a weekend you need only a slice, and most of that slice is now written — see Appendix A of `AI English Practice Documentation.md`.
+Ninety-six competencies, thirty domains and eighteen templates is a roadmap. To prove this engine works in a weekend you need only a slice, and most of that slice is now written — see [`../curriculum/content-pack-a2-d01.md`](../curriculum/content-pack-a2-d01.md).
 
 - **Competencies:** the `A2-D01` core set, fifteen sub-competencies with full metadata. ✅ authored
 - **Domain:** `A2-D01` with roles assigned. ✅ authored
@@ -581,7 +586,7 @@ Two things deliberately left unchanged: the exercise template prose stays as hum
 
 - **CEFR promotion** is now defined in section 9: all `core` competencies at mastery ≥ 0.75 with `evidence_count` ≥ 3.
 - **The onboarding assessment** is now defined in section 9 as three seeding sessions.
-- **`B1-D01` and `B1-D02`** have been authored into `AI English Practice Documentation.md`, bringing every level to six domains.
+- **`B1-D01` and `B1-D02`** have been authored into [`../curriculum/domains.md`](../curriculum/domains.md), bringing every level to six domains.
 - **Pre-generation** is resolved by the Stimulus Pool in section 12: assets are built ahead, plans are not.
 - **What counts as evidence** is resolved in section 6: one session-and-competency pair, however many attempts.
 - **Where `observed` comes from** is resolved in section 6: an opportunity ratio from a structured evaluator return.
