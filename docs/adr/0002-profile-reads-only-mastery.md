@@ -8,4 +8,6 @@ Showing mastery × retrievability would be the honest answer to "what can she do
 
 ## Consequences
 
-Confidence stops being a special case with a `derived` array and becomes an ordinary bundle like Grammar or Vocabulary. Three learner-facing surfaces stay distinct: Rings mean showing up, the Profile means getting better, the due count means act now.
+Three learner-facing surfaces stay distinct: Rings mean showing up, the Profile means getting better, the due count means act now.
+
+Confidence was the special case this decision was written around — a dimension with a `derived` array of raw delivery metrics. Routing those metrics through mastery removed the special case, and [`0006-confidence-and-presentation-are-not-dimensions.md`](./0006-confidence-and-presentation-are-not-dimensions.md) later removed the dimension itself, because what the metrics measure is delivery rather than confidence. The rule here is unchanged and is what made that possible: the metrics are still evidence on sub-competencies, so nothing reaches the Profile except through mastery.

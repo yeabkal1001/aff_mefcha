@@ -119,11 +119,11 @@ Speak, Learn, Improve. Daily activity and consistency — they measure showing u
 _Avoid_: streaks, goals
 
 **Communication Profile**:
-The eight Profile Dimensions together — they measure getting better.
+The six Profile Dimensions together — they measure getting better.
 _Avoid_: dashboard, stats, scorecard
 
 **Profile Dimension**:
-A named weighted bundle of sub-competency IDs, five fixed plus three from the Life Path. Always computed from the learner model, never stored.
+A named weighted bundle of sub-competency IDs, four fixed plus two from the Life Path. Always computed from the learner model, never stored. Every member must be reachable at the learner's band, which is why there is no Confidence or Presentation dimension — see `docs/adr/0006-confidence-and-presentation-are-not-dimensions.md`.
 _Avoid_: ring, score, stat, metric
 
 Rings and Profile Dimensions are different objects and the words are never interchanged. Rings are about showing up; the Profile is about getting better.

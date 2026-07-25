@@ -37,7 +37,7 @@ From `data.chunks`, each `{ text, timestamp: [start, end] }`:
 - Filler rate: `um`, `uh`, `eh` per 100 words, from the verbatim track only.
 - Mean sentence length: verbatim word count over sentence count from the punctuated transcript.
 
-Store these as `turn.metrics_json` — they describe an utterance, not a competency. They reach the Confidence dimension as *evidence*: pause ratio and hesitation rate produce an `observed` for the delivery sub-competencies, which update mastery the ordinary way. Never compute a dashboard number directly from a metric.
+Store these as `turn.metrics_json` — they describe an utterance, not a competency. They reach the Profile as *evidence* on a named sub-competency: hesitation rate to `F020.05`, response latency to `F003.*`, mean turn length to `F002.*` and `F005.*`, pause ratio and speech rate to `F001.05`. Those update mastery the ordinary way and surface inside Fluency. There is no Confidence dimension to feed. Never compute a dashboard number directly from a metric.
 
 `P001.01`–`P003` need phoneme scoring that no API here provides; they are `observable: false`. The one workable probe is a minimal-pair drill judged by the transcriber — target "ship", transcriber returns "sheep", score the target missed.
 

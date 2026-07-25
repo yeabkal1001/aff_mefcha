@@ -1,26 +1,493 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ---------------------------------------------------------------------------
+   Coach tokens
+
+   The screen is two systems: an ambient field behind everything, and an orb
+   whose gradient carries the session state. Both are defined here so a
+   retheme never means editing a component.
+   --------------------------------------------------------------------------- */
+
+:root {
+  /* Ambient field. Four washes bled together behind the stage. */
+  --ambient-blush: oklch(0.962 0.024 350);
+  --ambient-lilac: oklch(0.957 0.022 300);
+  --ambient-sky: oklch(0.957 0.03 232);
+  --ambient-mist: oklch(0.995 0.002 250);
+
+  /* Orb, one gradient pair per session state. */
+  --orb-idle-from: oklch(0.76 0.115 305);
+  --orb-idle-to: oklch(0.82 0.11 222);
+  --orb-listening-from: oklch(0.72 0.14 288);
+  --orb-listening-to: oklch(0.84 0.115 215);
+  --orb-speaking-from: oklch(0.64 0.263 349);
+  --orb-speaking-to: oklch(0.85 0.09 228);
+  --orb-thinking-from: oklch(0.78 0.09 268);
+  --orb-thinking-to: oklch(0.88 0.06 240);
+
+  /* Feedback. Red marks what was said, green what to say instead. */
+  --coach-error: oklch(0.62 0.223 27);
+  --coach-correct: oklch(0.596 0.155 152);
+  --coach-streak: oklch(0.72 0.18 45);
+
+  /* Cool grey for session metadata in the history list. */
+  --muted-cool: oklch(0.775 0.026 236);
+
+  /* Frosted surfaces floating on the ambient field. */
+  --panel: oklch(1 0 0 / 76%);
+  --panel-solid: oklch(1 0 0 / 92%);
+  --panel-border: oklch(0.923 0.003 265 / 70%);
+}
+
+@theme inline {
+  --color-ambient-blush: var(--ambient-blush);
+  --color-ambient-lilac: var(--ambient-lilac);
+  --color-ambient-sky: var(--ambient-sky);
+  --color-ambient-mist: var(--ambient-mist);
+  --color-muted-cool: var(--muted-cool);
+  --color-coach-error: var(--coach-error);
+  --color-coach-correct: var(--coach-correct);
+  --color-coach-streak: var(--coach-streak);
+  --color-panel: var(--panel);
+  --color-panel-solid: var(--panel-solid);
+  --color-panel-border: var(--panel-border);
+}
+
+@layer components {
+  /* Frosted card used by the sidebar panels and the correction card. */
+  .surface-panel {
+    background-color: var(--panel);
+    border: 1px solid var(--panel-border);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+  }
+
+  /* The small letterspaced uppercase labels: LESSON TOPIC, YOU SAID, WHY. */
+  .label-eyebrow {
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+
+  /* The slip inside a learner's sentence. Wavy, like a proofreader's mark,
+     with just enough tint to find it without shouting. */
+  .mark-error {
+    color: var(--coach-error);
+    background-color: color-mix(in oklab, var(--coach-error) 9%, transparent);
+    border-radius: 0.1875rem;
+    padding-inline: 0.125rem;
+    text-decoration: underline wavy var(--coach-error);
+    text-underline-offset: 0.1875rem;
+    text-decoration-thickness: 1px;
+  }
+
+  /* The repaired sentence. */
+  .mark-correct {
+    color: var(--coach-correct);
+    font-weight: 500;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Ambient field
+
+   Soft washes bled together behind everything. The blush wash lifts while the
+   coach is speaking, which is why the two design frames read as different
+   temperatures even though the layout is identical.
+   --------------------------------------------------------------------------- */
+
+@layer components {
+  .ambient {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    background-color: var(--ambient-mist);
+    pointer-events: none;
+  }
+
+  .ambient-wash {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(70px);
+    transition: opacity 1200ms ease;
+    will-change: transform, opacity;
+  }
+
+  .ambient-blush {
+    top: -18%;
+    left: -12%;
+    width: 62%;
+    height: 78%;
+    background: radial-gradient(
+      circle at 50% 50%,
+      var(--ambient-blush),
+      transparent 68%
+    );
+    opacity: 0.75;
+    animation: ambient-bloom 19s ease-in-out infinite;
+  }
+
+  .ambient-lilac {
+    top: 24%;
+    left: 26%;
+    width: 54%;
+    height: 62%;
+    background: radial-gradient(
+      circle at 50% 50%,
+      var(--ambient-lilac),
+      transparent 70%
+    );
+    opacity: 0.7;
+    animation: ambient-bloom 23s ease-in-out infinite reverse;
+  }
+
+  .ambient-sky {
+    top: -6%;
+    right: -16%;
+    width: 66%;
+    height: 92%;
+    background: radial-gradient(
+      circle at 50% 50%,
+      var(--ambient-sky),
+      transparent 66%
+    );
+    opacity: 0.85;
+    animation: ambient-bloom 17s ease-in-out infinite;
+  }
+
+  .ambient-glare {
+    bottom: -32%;
+    left: 18%;
+    width: 70%;
+    height: 60%;
+    background: radial-gradient(
+      circle at 50% 50%,
+      oklch(1 0 0 / 92%),
+      transparent 70%
+    );
+    opacity: 0.9;
+  }
+
+  /* The coach speaking warms the whole room. */
+  .ambient[data-state="speaking"] .ambient-blush {
+    opacity: 1;
+  }
+
+  .ambient[data-state="speaking"] .ambient-glare {
+    opacity: 0.62;
+  }
+
+  .ambient[data-state="idle"] .ambient-blush {
+    opacity: 0.52;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   The orb
+
+   Four stacked layers: an outer glow that bleeds onto the ambient field,
+   expanding ripples while the coach talks, the sphere itself, and a specular
+   highlight. Everything scales off a single --level custom property that the
+   component writes each frame from the audio signal.
+   --------------------------------------------------------------------------- */
+
+@layer components {
+  .orb {
+    --level: 0;
+    --orb-size: clamp(8.5rem, 13vw, 11rem);
+    --orb-from: var(--orb-idle-from);
+    --orb-to: var(--orb-idle-to);
+
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: var(--orb-size);
+    height: var(--orb-size);
+    isolation: isolate;
+  }
+
+  .orb[data-state="listening"] {
+    --orb-from: var(--orb-listening-from);
+    --orb-to: var(--orb-listening-to);
+  }
+
+  .orb[data-state="speaking"] {
+    --orb-from: var(--orb-speaking-from);
+    --orb-to: var(--orb-speaking-to);
+  }
+
+  .orb[data-state="thinking"] {
+    --orb-from: var(--orb-thinking-from);
+    --orb-to: var(--orb-thinking-to);
+  }
+
+  /* Colour bleeding onto the page behind the sphere. */
+  .orb-glow {
+    position: absolute;
+    inset: -55%;
+    border-radius: 9999px;
+    background: radial-gradient(
+      circle at 50% 50%,
+      var(--orb-from) 0%,
+      var(--orb-to) 38%,
+      transparent 68%
+    );
+    filter: blur(38px);
+    opacity: calc(0.26 + var(--level) * 0.42);
+    transform: scale(calc(0.82 + var(--level) * 0.3));
+    transition:
+      background 900ms ease,
+      opacity 120ms linear;
+    will-change: transform, opacity;
+  }
+
+  .orb-body {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    animation: orb-drift 7s ease-in-out infinite;
+  }
+
+  .orb-sphere {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: 9999px;
+    background:
+      radial-gradient(
+        118% 118% at 26% 22%,
+        var(--orb-from) 0%,
+        transparent 60%
+      ),
+      radial-gradient(
+        124% 124% at 78% 80%,
+        var(--orb-to) 0%,
+        transparent 64%
+      ),
+      linear-gradient(142deg, var(--orb-from) 8%, var(--orb-to) 92%);
+    box-shadow:
+      inset 0 -12px 28px -12px oklch(0.45 0.12 300 / 22%),
+      inset 0 10px 24px -10px oklch(1 0 0 / 55%);
+    /* Feathered edge, matching the soft render in the design. */
+    filter: blur(0.5px) saturate(calc(1 + var(--level) * 0.35));
+    transform: scale(calc(1 + var(--level) * 0.13));
+    transition:
+      background 900ms ease,
+      filter 200ms linear;
+    will-change: transform;
+  }
+
+  /* Small offset catch-light that keeps the sphere from reading as flat. */
+  .orb-highlight {
+    position: absolute;
+    top: 14%;
+    left: 20%;
+    width: 34%;
+    height: 26%;
+    border-radius: 9999px;
+    background: radial-gradient(
+      circle at 50% 50%,
+      oklch(1 0 0 / 70%),
+      transparent 70%
+    );
+    filter: blur(8px);
+    opacity: calc(0.55 + var(--level) * 0.3);
+    pointer-events: none;
+  }
+
+  .orb-ripple {
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    border: 1px solid var(--orb-from);
+    opacity: 0;
+    animation: orb-ripple 2.6s ease-out infinite;
+    pointer-events: none;
+  }
+
+  .orb-ripple:nth-child(2) {
+    animation-delay: 0.85s;
+  }
+
+  .orb-ripple:nth-child(3) {
+    animation-delay: 1.7s;
+  }
+}
+
+/* The orb's drift and the ambient field's slow bloom. Both are decorative,
+   so both stop when the learner asks for less motion. */
+@keyframes orb-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -10px, 0);
+  }
+}
+
+@keyframes ambient-bloom {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translate3d(2%, -2%, 0) scale(1.12);
+    opacity: 1;
+  }
+}
+
+@keyframes orb-ripple {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -145,7 +145,7 @@ A grilling session found three real defects — retries inflating `evidence_coun
 
 **Content authored for the demo.** Fifteen `A2-D01` competency records with success criteria, common errors and Amharic L1 risk, plus full descriptors for `EX001`, `EX007` and `EX018`. `A2-D01` carries requirement roles. All 201 vocabulary sub-competencies have IDs and all 96 competencies have descriptions.
 
-**Still to author:** generation metadata for every sub-competency outside the A2-D01 pack, descriptors for the remaining 15 templates, requirement roles on the other 29 domains, the Confidence dimension's member list, and the `hospitality` Life Path skin for the Samuel half of the demo.
+**Still to author:** generation metadata for every sub-competency outside the A2-D01 pack, descriptors for the remaining 15 templates, requirement roles on the other 29 domains, the thresholds that turn a delivery metric into an `observed`, and the `hospitality` Life Path skin for the Samuel half of the demo.
 
 **Known limitations, deliberately accepted:**
 
