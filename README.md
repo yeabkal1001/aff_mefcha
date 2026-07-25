@@ -4,12 +4,43 @@ An AI speaking coach for Ethiopian students and professionals. Voice conversatio
 
 **Read [`docs/product/persona.md`](./docs/product/persona.md) first.** It is the shortest path to understanding what this is, and it carries the demo script. Then [`docs/architecture/session-engine.md`](./docs/architecture/session-engine.md) if you want to know how it works.
 
+## Getting started
+
+Needs Node 20+, pnpm and Docker Desktop.
+
+```bash
+pnpm install                       # install both packages
+cp server/.env.example server/.env # then fill in the provider keys
+cp client/.env.example client/.env.local
+pnpm db:up                         # Postgres in Docker
+pnpm --filter server db:generate
+pnpm dev                           # client :3000, server :4000
+```
+
+`curl http://localhost:4000/health` should answer. Root scripts: `pnpm dev`, `pnpm build`, `pnpm typecheck`, `pnpm db:up`, `pnpm db:reset`, `pnpm db:studio`.
+
+## Client and server are separate
+
+Two packages in one pnpm workspace, so the two halves of the team never block each other.
+
+| | `client/` | `server/` |
+| --- | --- | --- |
+| Stack | Next.js 16, React 19, Tailwind 4 | Express 5, Prisma, Postgres |
+| Port | 3000 | 4000 |
+| Owns | Everything the learner sees | The database, every provider key, all engine logic |
+| Never has | A provider key, a database query | An opinion about layout |
+
+They meet at exactly one place: HTTP at `NEXT_PUBLIC_API_URL`. Each package has its own README with the rules for that side.
+
 ## Where everything lives
 
 ```
 README.md                    you are here
 CONTEXT.md                   the glossary — binding for code, prompts and UI copy
 AGENTS.md                    agent configuration
+docker-compose.yml           Postgres, and Adminer on :8080
+client/                      Next.js app — see client/README.md
+server/                      Node API — see server/README.md
 docs/
 ├── product/
 │   ├── persona.md           ★ the narrative, the personas, the demo script

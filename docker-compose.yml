@@ -1,0 +1,40 @@
+# Postgres only. The client and server run natively for hot reload, and Render
+# deploys them from source, so app containers would be dead weight this weekend.
+#
+#   pnpm db:up      start
+#   pnpm db:down    stop
+#   pnpm db:reset   destroy the volume and start clean
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: english-coach-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: coach
+      POSTGRES_PASSWORD: coach
+      POSTGRES_DB: english_coach
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U coach -d english_coach"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Browse the data at http://localhost:8080 without installing anything.
+  # Prisma Studio (`pnpm db:studio`) is usually nicer; this is the fallback.
+  adminer:
+    image: adminer:latest
+    container_name: english-coach-adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
