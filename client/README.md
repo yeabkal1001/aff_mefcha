@@ -19,6 +19,29 @@ Everything goes through the server at `NEXT_PUBLIC_API_URL`. The one direct conn
 
 If you want a database query here, it belongs in the server.
 
+## UI kit
+
+Two registries, both installed through the shadcn CLI, both of which copy source files into this package rather than adding a runtime dependency. Edit the copied files freely — they are ours now.
+
+```bash
+pnpm dlx shadcn@latest add <name>                    # shadcn primitive
+pnpm dlx shadcn@latest add @react-bits/<Name>-TS-TW  # React Bits animation
+```
+
+Always take the `-TS-TW` variant of a React Bits component. The other three variants are JavaScript or plain CSS and will fight the rest of the codebase.
+
+Where things land tells you what they are:
+
+| Path | What lives there |
+| --- | --- |
+| `components/ui/*.tsx` | shadcn primitives, kebab-case. Style set to `radix-nova`. |
+| `components/*.tsx` | React Bits components, PascalCase, dropped at the top level by their registry. |
+| `components/<feature>/` | Components we write ourselves. |
+
+Theme tokens are oklch variables in `app/globals.css`, with dark mode behind a `.dark` class. When the Figma design arrives, retheming means editing those variables rather than touching components.
+
+`components/BlurText.tsx` is a React Bits install kept as a working reference for the pattern. Delete it if it goes unused.
+
 ## Screens
 
 The seven screens are listed in [`../docs/product/vision.md`](../docs/product/vision.md). Build them in the order the demo script at the end of [`../docs/product/persona.md`](../docs/product/persona.md) needs them — that script is the definition of done.
