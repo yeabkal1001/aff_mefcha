@@ -13,6 +13,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useOnboardingDraft } from "@/hooks/use-onboarding-draft";
 import { coachTip, learner } from "@/lib/mock-data";
 
 interface AppSidebarProps {
@@ -28,6 +29,8 @@ export function AppSidebar({
   speakingMinutes,
   corrections,
 }: AppSidebarProps) {
+  const { name } = useOnboardingDraft();
+
   return (
     <AnimatePresence initial={false} mode="popLayout">
       {collapsed ? (
@@ -70,7 +73,7 @@ export function AppSidebar({
               <BrandMark />
               <span className="min-w-0">
                 <span className="block truncate text-[0.8125rem] font-semibold leading-tight text-foreground">
-                  {learner.name}
+                  {name || learner.name}
                 </span>
                 <span className="block text-[0.6875rem] leading-tight text-muted-foreground">
                   {learner.plan}

@@ -18,7 +18,9 @@ Three principles from learning science hold it together. **Immediate feedback** 
 
 ## The journey
 
-Landing → Onboarding → Life Path → Assessment → Dashboard → Today's Mission → Live voice conversation → Reflection → Communication Profile.
+Landing → Onboarding → Life Path → Assessment → Communication Profile → Today's Mission → Live voice conversation → Reflection → **Sign-up**.
+
+Sign-up sits at the end on purpose. Nothing before it needs an account, and the only thing that earns an email is having already heard the coach catch a mistake and fix it. Step by step in [`onboarding.md`](./onboarding.md).
 
 ## Screens
 
@@ -29,6 +31,7 @@ Landing → Onboarding → Life Path → Assessment → Dashboard → Today's Mi
 5. **Live coaching** — voice conversation with a running transcript.
 6. **Reflection and retry** — what you said beside how it could sound, and the learner naming what changed.
 7. **Communication Profile** — the eight dimensions.
+8. **Sign-up** — shown once, after the first mission, framed as saving what just moved.
 
 ## What sits underneath
 
@@ -72,6 +75,6 @@ Full script at the end of [`persona.md`](./persona.md).
 
 ## Out of scope, deliberately
 
-Accounts, auth and payments. A1 content. Mobile layout. The 29 domains and 15 templates outside the demo slice. Realtime free-talk mode unless there is time left over.
+Real authentication and payments. The sign-up *screen* exists because where it sits in the flow is a product argument worth demonstrating, but it collects an email and does nothing with it — sessions run against a draft profile held on the device. A1 content. Mobile layout. The 29 domains and 15 templates outside the demo slice. Realtime free-talk mode unless there is time left over.
 
 The classification of everything else as load-bearing, prop or cut lives in the `demo-fidelity` skill.

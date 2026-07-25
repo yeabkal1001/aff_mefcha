@@ -61,7 +61,18 @@ because a motionless orb reads as a broken app.
 
 ## Screens
 
-The seven screens are listed in [`../docs/product/vision.md`](../docs/product/vision.md). Build them in the order the demo script at the end of [`../docs/product/persona.md`](../docs/product/persona.md) needs them — that script is the definition of done.
+The screens are listed in [`../docs/product/vision.md`](../docs/product/vision.md). Build them in the order the demo script at the end of [`../docs/product/persona.md`](../docs/product/persona.md) needs them — that script is the definition of done.
+
+Routes today:
+
+| Route | Screen |
+| --- | --- |
+| `/` | Landing. One call to action, no account. |
+| `/onboarding` | The whole flow, step-machined over `ONBOARDING_STEPS` — seven questions, mic check, three assessment prompts, profile reveal. |
+| `/practice` | The live session. |
+| `/signup` | Shown after the first mission, never before it. |
+
+Onboarding answers live in `hooks/use-onboarding-draft.ts` — an external store backed by `localStorage`, because there is no account until the very end. Which question feeds which part of the generator is spelled out in [`../docs/product/onboarding.md`](../docs/product/onboarding.md); do not add a question that does not change a generated session.
 
 ## Language rules that reach the UI
 

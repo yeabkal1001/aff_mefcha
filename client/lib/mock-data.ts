@@ -112,6 +112,87 @@ export const corrections: Correction[] = [
   },
 ];
 
+/**
+ * The three assessment prompts, in order. Templates and what each one seeds
+ * are specified in session-engine.md §9.
+ */
+export interface AssessmentPrompt {
+  template: string;
+  kind: string;
+  instruction: string;
+  /** Roughly four minutes of speech across all three. */
+  seconds: number;
+}
+
+export const assessmentPrompts: AssessmentPrompt[] = [
+  {
+    template: "EX001",
+    kind: "Picture description",
+    instruction:
+      "Look at this photo for a moment, then tell me everything you can see.",
+    seconds: 70,
+  },
+  {
+    template: "EX007",
+    kind: "Personal questions",
+    instruction:
+      "Now two questions about you. Where did you grow up, and what do you enjoy doing on a free day?",
+    seconds: 85,
+  },
+  {
+    template: "EX009",
+    kind: "Personal experience",
+    instruction:
+      "Last one. Tell me about a day you remember well. What happened, and how did it end?",
+    seconds: 75,
+  },
+];
+
+export interface Dimension {
+  id: string;
+  label: string;
+  /** null means no attempted members yet — shown as "not yet assessed". */
+  value: number | null;
+  fixed: boolean;
+}
+
+/**
+ * The profile as it stands after the assessment. Every value here rests on
+ * `evidence_count = 1`, so the reveal screen draws it as an estimate rather
+ * than a verdict. The two dimensions with no value are the honest case the
+ * docs insist on: no evidence reads as "not yet assessed", never 0%.
+ */
+export const openingProfile: Dimension[] = [
+  { id: "grammar", label: "Grammar", value: 0.62, fixed: true },
+  { id: "vocabulary", label: "Vocabulary", value: 0.67, fixed: true },
+  { id: "pronunciation", label: "Pronunciation", value: 0.58, fixed: true },
+  { id: "fluency", label: "Fluency", value: 0.44, fixed: true },
+  { id: "confidence", label: "Confidence", value: 0.39, fixed: true },
+  { id: "presentation", label: "Presentation", value: 0.22, fixed: false },
+  { id: "academic_discussion", label: "Academic Discussion", value: null, fixed: false },
+  { id: "classroom_interaction", label: "Classroom Interaction", value: null, fixed: false },
+];
+
+export interface DimensionGain {
+  label: string;
+  from: number;
+  to: number;
+}
+
+/**
+ * What the first mission moved. This is the sign-up screen's whole argument:
+ * the learner has something to lose by the time we ask for an email.
+ */
+export const firstSessionGains: DimensionGain[] = [
+  { label: "Confidence", from: 0.39, to: 0.47 },
+  { label: "Grammar", from: 0.62, to: 0.68 },
+  { label: "Pronunciation", from: 0.58, to: 0.61 },
+  { label: "Fluency", from: 0.44, to: 0.49 },
+];
+
+/** Verbatim word count over sentence count, from the word-level transcript. */
+export const sentenceLengthGain = { from: 6, to: 11 };
+
 /** What the coach says while it has the floor, matched to each correction. */
 export const coachLines: string[] = [
   "So tell me, what did you do yesterday?",
