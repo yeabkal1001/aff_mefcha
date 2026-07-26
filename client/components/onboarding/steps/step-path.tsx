@@ -1,8 +1,9 @@
 "use client";
 
 import { OnboardingShell } from "@/components/onboarding/onboarding-shell";
+import { useRovingRadioGroup } from "@/hooks/use-roving-radio-group";
 import { updateDraft, useOnboardingDraft } from "@/hooks/use-onboarding-draft";
-import { lifePaths } from "@/lib/onboarding";
+import { lifePaths, type LifePathId } from "@/lib/onboarding";
 import { cn } from "@/lib/utils";
 
 import type { StepProps } from "./types";
@@ -10,8 +11,8 @@ import type { StepProps } from "./types";
 /**
  * The product's central question, and the largest single lever in the
  * generator: it sets domain priority, the context every scene is skinned with,
- * the vocabulary overlay, template preference, and three of the eight Profile
- * Dimensions.
+ * the vocabulary overlay, template preference, and two of the six Profile
+ * Dimensions — the other four are fixed for every learner.
  *
  * Planned paths are shown disabled rather than hidden. Hiding them understates
  * the roadmap; enabling them would generate sessions with no overlay behind
@@ -20,6 +21,21 @@ import type { StepProps } from "./types";
 export function StepPath({ index, count, onNext, onBack }: StepProps) {
   const { lifePath } = useOnboardingDraft();
   const chosen = lifePaths.find((path) => path.id === lifePath);
+
+  const choose = (id: LifePathId) => {
+    // The field question belongs to the path — "What are you studying?"
+    // becomes "What role are you aiming for?". Carrying the old answer over
+    // would put "Medicine" under a question about hotel work.
+    const changed = id !== lifePath;
+    updateDraft({ lifePath: id, ...(changed ? { studyField: "" } : {}) });
+  };
+
+  const { groupProps, getRadioProps } = useRovingRadioGroup<LifePathId>({
+    values: lifePaths.map((path) => path.id),
+    value: lifePath,
+    onChange: choose,
+    isDisabled: (id) => !lifePaths.find((path) => path.id === id)?.live,
+  });
 
   return (
     <OnboardingShell
@@ -31,13 +47,10 @@ export function StepPath({ index, count, onNext, onBack }: StepProps) {
       onBack={onBack}
       onNext={onNext}
       canAdvance={Boolean(lifePath)}
+      requirement="Choose a Life Path to continue. You can change it later."
       wide
     >
-      <div
-        role="radiogroup"
-        aria-label="Life Path"
-        className="grid gap-2 sm:grid-cols-2"
-      >
+      <div {...groupProps} aria-label="Life Path" className="grid gap-2 sm:grid-cols-2">
         {lifePaths.map((path) => {
           const Icon = path.icon;
           const selected = lifePath === path.id;
@@ -46,25 +59,22 @@ export function StepPath({ index, count, onNext, onBack }: StepProps) {
             <button
               key={path.id}
               type="button"
-              role="radio"
-              aria-checked={selected}
+              {...getRadioProps(path.id)}
               disabled={!path.live}
-              onClick={() => updateDraft({ lifePath: path.id })}
               className={cn(
                 "surface-panel relative flex items-start gap-3 rounded-xl p-3 text-left",
                 "transition-[border-color,transform,box-shadow] duration-200",
                 "hover:border-foreground/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-                selected &&
-                  "border-foreground/70 shadow-[0_14px_36px_-20px_oklch(0.3_0.05_280/55%)]",
+                selected && "border-foreground/70 shadow-selected",
                 !path.live && "pointer-events-none opacity-40",
               )}
             >
               {!path.live ? (
-                <span className="absolute right-3 top-3 rounded-full bg-foreground/[0.06] px-2 py-0.5 text-[0.5625rem] font-semibold uppercase tracking-wide text-muted-foreground">
+                <span className="absolute right-3 top-3 rounded-full bg-foreground/[0.06] px-2 py-0.5 text-micro font-semibold uppercase tracking-wide text-muted-foreground">
                   Soon
                 </span>
               ) : path.isDefault ? (
-                <span className="absolute right-3 top-3 rounded-full bg-foreground/[0.06] px-2 py-0.5 text-[0.5625rem] font-semibold uppercase tracking-wide text-muted-foreground">
+                <span className="absolute right-3 top-3 rounded-full bg-foreground/[0.06] px-2 py-0.5 text-micro font-semibold uppercase tracking-wide text-muted-foreground">
                   Default
                 </span>
               ) : null}
@@ -77,14 +87,14 @@ export function StepPath({ index, count, onNext, onBack }: StepProps) {
                     : "bg-foreground/[0.05] text-foreground/70",
                 )}
               >
-                <Icon className="size-[1.125rem]" strokeWidth={1.75} />
+                <Icon className="size-[1.125rem]" strokeWidth={1.75} aria-hidden />
               </span>
 
               <span className="min-w-0 flex-1">
-                <span className="block pr-8 text-[0.875rem] font-semibold leading-tight text-foreground">
+                <span className="block pr-14 text-body font-semibold leading-tight text-foreground">
                   {path.name}
                 </span>
-                <span className="mt-1 block text-[0.75rem] leading-snug text-muted-foreground">
+                <span className="mt-1 block text-caption leading-snug text-muted-foreground">
                   {path.tagline}
                 </span>
               </span>
@@ -97,13 +107,13 @@ export function StepPath({ index, count, onNext, onBack }: StepProps) {
       <div className="mt-3 flex min-h-[1.75rem] flex-wrap items-center justify-center gap-1.5">
         {chosen && (
           <>
-            <span className="text-[0.75rem] text-muted-foreground">
+            <span className="text-caption text-muted-foreground">
               You&apos;ll be measured on
             </span>
             {chosen.dimensions.map((dimension) => (
               <span
                 key={dimension}
-                className="rounded-full bg-foreground/[0.055] px-2 py-0.5 text-[0.6875rem] text-foreground/75"
+                className="rounded-full bg-foreground/[0.055] px-2 py-0.5 text-mini text-foreground/75"
               >
                 {dimension}
               </span>

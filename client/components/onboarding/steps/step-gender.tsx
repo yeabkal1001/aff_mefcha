@@ -1,7 +1,6 @@
 "use client";
 
-import { ChoiceButton } from "@/components/onboarding/choice-button";
-import { OnboardingShell } from "@/components/onboarding/onboarding-shell";
+import { ChoiceStep } from "@/components/onboarding/choice-step";
 import { updateDraft, useOnboardingDraft } from "@/hooks/use-onboarding-draft";
 import { genders } from "@/lib/onboarding";
 
@@ -16,26 +15,22 @@ export function StepGender({ index, count, onNext, onBack }: StepProps) {
   const { gender } = useOnboardingDraft();
 
   return (
-    <OnboardingShell
+    <ChoiceStep
       stepKey="gender"
       stepIndex={index}
       stepCount={count}
       question="How should your coach refer to you?"
       hint="This changes how the coach speaks about you, and nothing else."
-      onBack={onBack}
+      groupLabel="How to refer to you"
+      requirement="Choose an option to continue. “Prefer not to say” is one of them."
+      options={genders.map((option) => ({
+        value: option.id,
+        label: option.label,
+      }))}
+      value={gender}
+      onChange={(value) => updateDraft({ gender: value })}
       onNext={onNext}
-      canAdvance={gender !== null}
-    >
-      <div role="radiogroup" aria-label="How to refer to you" className="space-y-2">
-        {genders.map((option) => (
-          <ChoiceButton
-            key={option.id}
-            selected={gender === option.id}
-            onSelect={() => updateDraft({ gender: option.id })}
-            label={option.label}
-          />
-        ))}
-      </div>
-    </OnboardingShell>
+      onBack={onBack}
+    />
   );
 }

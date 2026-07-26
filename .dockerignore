@@ -1,0 +1,31 @@
+# Build context is the repo root. Everything the image does not need is kept
+# out of it — partly for build speed, mostly so a stray .env can never be
+# copied into a layer and shipped.
+
+node_modules
+**/node_modules
+
+.git
+.gitignore
+
+.env
+.env.*
+**/.env
+**/.env.*
+!**/.env.example
+
+**/dist
+**/.next
+**/coverage
+**/*.log
+
+client
+docs
+.cursor
+.qodo
+.scratch
+
+Dockerfile
+**/Dockerfile
+.dockerignore
+docker-compose.yml

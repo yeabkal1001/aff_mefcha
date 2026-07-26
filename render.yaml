@@ -1,0 +1,140 @@
+# Render blueprint — the whole product, reproducible from this file.
+#
+# Render reads this on push and reconciles: a database, the API, and the Next
+# app. Everything that is not a secret is declared here so that a new
+# environment is a `Blueprint → New` and a paste of six keys, not an afternoon
+# of clicking.
+#
+# The secrets are deliberately absent. Anything marked `sync: false` must be
+# set once in the Render dashboard and is never stored in git. See
+# docs/ops/deployment.md for which keys, and where each one comes from.
+
+databases:
+  - name: english-coach-db
+    databaseName: english_coach
+    user: english_coach
+    plan: basic-256mb
+    postgresMajorVersion: "17"
+    # Nothing outside Render reaches the database. The API uses the internal
+    # URL, and an empty allowlist is what makes "internal" true rather than
+    # merely preferred.
+    ipAllowList: []
+
+services:
+  # -------------------------------------------------------------------------
+  # API
+  # -------------------------------------------------------------------------
+  - type: web
+    name: english-coach-api
+    runtime: docker
+    plan: starter
+    region: oregon
+    dockerfilePath: ./server/Dockerfile
+    # The repo root, because the pnpm lockfile lives there.
+    dockerContext: .
+
+    # Migrations run here, not in the container's entrypoint. Render runs this
+    # once per deploy against the new image; an entrypoint would run it once
+    # per *instance*, so scaling to three would race three `migrate deploy`
+    # processes against the same schema.
+    preDeployCommand: pnpm --filter server db:deploy
+
+    healthCheckPath: /ready
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      # Injected by Render. Declared so nothing here quietly assumes 4000.
+      - key: PORT
+        value: 4000
+
+      - key: DATABASE_URL
+        fromDatabase:
+          name: english-coach-db
+          property: connectionString
+
+      # Exactly one proxy hop in front of a Render web service. Getting this
+      # wrong either collapses every client into one rate-limit bucket or lets
+      # a client mint a fresh bucket per request with a forged header.
+      - key: TRUST_PROXY_HOPS
+        value: 1
+
+      - key: CLIENT_ORIGINS
+        fromService:
+          type: web
+          name: english-coach-web
+          envVarKey: RENDER_EXTERNAL_URL
+
+      - key: LOG_LEVEL
+        value: info
+
+      - key: DATABASE_STATEMENT_TIMEOUT_MS
+        value: 8000
+
+      - key: RATE_LIMIT_WINDOW_MS
+        value: 60000
+      - key: RATE_LIMIT_MAX
+        value: 300
+      - key: RATE_LIMIT_AI_WINDOW_MS
+        value: 60000
+      - key: RATE_LIMIT_AI_MAX
+        value: 30
+
+      # Render sends SIGTERM and waits 30s before SIGKILL. Ours must finish
+      # inside that or the drain is decorative.
+      - key: SHUTDOWN_GRACE_MS
+        value: 20000
+
+      - key: GEMINI_DIRECTOR_MODEL
+        value: gemini-2.5-flash
+      - key: GEMINI_EVALUATOR_MODEL
+        value: gemini-2.5-pro
+      - key: ELEVENLABS_VOICE_ID
+        value: 21m00Tcm4TlvDq8ikWAM
+      - key: WHISPER_API_URL
+        value: https://api.openai.com/v1/audio/transcriptions
+
+      # --- set by hand, once, in the dashboard ---
+      - key: CLERK_PUBLISHABLE_KEY
+        sync: false
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: CLERK_WEBHOOK_SIGNING_SECRET
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: ELEVENLABS_API_KEY
+        sync: false
+      - key: WHISPER_API_KEY
+        sync: false
+
+  # -------------------------------------------------------------------------
+  # Web
+  # -------------------------------------------------------------------------
+  - type: web
+    name: english-coach-web
+    runtime: node
+    plan: starter
+    region: oregon
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter client build
+    startCommand: pnpm --filter client start
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      # Next reads NEXT_PUBLIC_* at build time and inlines them, so these must
+      # be present for the build, not merely at runtime. Render sets build-time
+      # environment from the same list, which is why this works.
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: english-coach-api
+          envVarKey: RENDER_EXTERNAL_URL
+
+      - key: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+        sync: false
+
+      - key: NEXT_PUBLIC_SITE_URL
+        sync: false

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { VoiceOrb } from "@/components/session/voice-orb";
-import type { SessionState } from "@/lib/mock-data";
+import type { SessionPhase } from "@/lib/session/phase";
 
 /**
  * The coach, mid-question. Speaks briefly when it mounts and then settles.
@@ -13,7 +13,7 @@ import type { SessionState } from "@/lib/mock-data";
  * place would need.
  */
 export function AskingOrb({ className }: { className?: string }) {
-  const [state, setState] = useState<SessionState>("speaking");
+  const [state, setState] = useState<SessionPhase>("speaking");
 
   useEffect(() => {
     const timer = setTimeout(() => setState("idle"), 1800);

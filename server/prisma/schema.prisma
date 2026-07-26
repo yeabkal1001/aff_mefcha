@@ -1,9 +1,15 @@
-// The data model is specified in ../../docs/architecture/session-engine.md, section 11.
-// It is deliberately not written here yet — scaffolding only.
+// The learner model, the curriculum it grades against, and the sessions that
+// produce the evidence.
 //
-// When you do write it, the names are binding: `learner_*` not `user_*`, `turn`
-// separate from `attempt`, and no table for a Profile Dimension or a learning plan.
-// See ../../CONTEXT.md and the `coach-canon` skill.
+// Specified in ../../docs/architecture/session-engine.md §11. The names there
+// are binding and this file keeps them: `learner_*` never `user_*`, `Turn`
+// separate from `Attempt`, counts rather than scores on an attempt, and no
+// table for a Profile Dimension or a learning plan — both are computed.
+//
+// Shape of the whole thing, in one sentence: the first six blocks are static
+// curriculum shared by every learner and only ever written by the seed; the
+// `Learner*`, `DayPlan`, `Session`, `Turn`, `Attempt` and `Reflection` blocks
+// grow per learner and are the only tables whose size tracks signups.
 
 generator client {
   provider = "prisma-client-js"
@@ -12,4 +18,763 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enumerations
+//
+// These are Postgres enums rather than check constraints or bare strings. The
+// database refuses a value outside the set, which means a bug in application
+// code cannot write a row that later reads back as an impossible state — the
+// class of corruption that is cheap to prevent and miserable to clean up.
+// ---------------------------------------------------------------------------
+
+/// The four things this product measures, and the only four.
+///
+/// One enum serves as both the skill on a competency and the Profile Dimension
+/// on the dashboard, because with four fixed dimensions they are the same
+/// partition. See docs/adr/0008.
+enum Skill {
+  GRAMMAR
+  VOCABULARY
+  FLUENCY
+  /// Whether the learner speaks in complete, bounded sentences rather than one
+  /// unpunctuated run-on. Replaces Pronunciation, which needs phoneme scoring
+  /// that this stack does not have. See docs/adr/0008.
+  SENTENCE_STRUCTURE
+}
+
+enum Cefr {
+  A1
+  A2
+  B1
+  B2
+  C1
+  C2
+}
+
+/// What a competency is doing in a domain or a session.
+enum TargetRole {
+  /// The point of the exercise. Mastery moves fastest here.
+  CORE
+  /// Needed to complete it, graded, but not what is being taught.
+  SUPPORTING
+  /// Observed opportunistically if it happens to come up.
+  INCIDENTAL
+}
+
+enum StimulusType {
+  IMAGE
+  IMAGE_PAIR
+  IMAGE_SEQUENCE
+  AUDIO
+  SCENARIO
+  STATEMENT
+  TOPIC
+  TEXT
+}
+
+enum InteractionMode {
+  MONOLOGUE
+  DIALOGUE
+  REPETITION
+}
+
+enum SessionStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  /// Left without finishing. Kept, not deleted: an abandoned session is
+  /// evidence about difficulty, and deleting it would bias the learner model
+  /// toward whatever they found easy enough to finish.
+  ABANDONED
+}
+
+/// Coarse authorization. Fine-grained access is ownership-based — see
+/// `requireOwnership` in the HTTP layer — and this only separates the three
+/// kinds of principal that exist.
+enum Role {
+  LEARNER
+  /// Internal support: may read any learner, may write none.
+  SUPPORT
+  ADMIN
+}
+
+enum LearnerStatus {
+  ACTIVE
+  /// Signed out of the product but retained. Blocks authentication.
+  SUSPENDED
+  /// Deletion requested. Retained for the grace window, then purged.
+  PENDING_DELETION
+}
+
+enum AgeBand {
+  UNDER_18
+  AGE_18_24
+  AGE_25_34
+  AGE_35_49
+  AGE_50_PLUS
+}
+
+enum Gender {
+  FEMALE
+  MALE
+  OTHER
+  UNDISCLOSED
+}
+
+/// Whether a correction is explained in English alone, or in English and the
+/// learner's first language. The English model sentence is always English;
+/// this is the explanation around it.
+///
+/// Two values rather than a list of languages, because *which* second language
+/// is not an independent choice — it is `LearnerProfile.l1`, which the learner
+/// already told us. Naming languages here would make "first language Amharic,
+/// explanations in Oromo" a representable state, and every representable state
+/// eventually happens.
+enum FeedbackLanguage {
+  ENGLISH
+  BILINGUAL
+}
+
+// ---------------------------------------------------------------------------
+// Curriculum — static, shared, seed-owned
+// ---------------------------------------------------------------------------
+
+/// One thing a learner can be good at, at the grain the engine grades.
+///
+/// IDs are the curriculum's own (`G014`, `G014.02`), not surrogates, because
+/// they appear in authored content, in prompts and in ADRs. A surrogate key
+/// here would mean every one of those needs a lookup to stay readable.
+model Competency {
+  id       String  @id
+  /// `G014.02`'s parent is `G014`. Null at the top of the tree.
+  parentId String? @map("parent_id")
+  skill    Skill
+  name     String
+  cefrMin  Cefr    @map("cefr_min")
+  cefrMax  Cefr    @map("cefr_max")
+
+  /// False where nothing in this stack can produce evidence. Excluded from the
+  /// dimension it belongs to rather than counted as zero, so an unmeasurable
+  /// competency cannot drag a score down.
+  observable Boolean @default(true)
+
+  successCriteria String   @map("success_criteria")
+  /// Prompts that tend to make this competency come up. Fed to the director.
+  elicitationCues String[] @map("elicitation_cues")
+  /// First-language interference notes, keyed by language code.
+  l1Risk          Json?    @map("l1_risk")
+
+  parent   Competency?  @relation("CompetencyTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children Competency[] @relation("CompetencyTree")
+
+  prereqs          CompetencyPrereq[] @relation("Dependent")
+  dependents       CompetencyPrereq[] @relation("Prerequisite")
+  errors           CompetencyError[]
+  domainRequires   DomainRequirement[]
+  templateElicits  TemplateElicits[]
+  learnerStates    LearnerCompetency[]
+  learnerErrors    LearnerError[]
+  sessionTargets   SessionTarget[]
+  attempts         Attempt[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  /// The dimension read scans by skill and filters unobservable rows; this is
+  /// the covering index for it.
+  @@index([skill, observable])
+  @@index([parentId])
+  @@map("competency")
+}
+
+model CompetencyPrereq {
+  competencyId String @map("competency_id")
+  requiresId   String @map("requires_id")
+
+  competency Competency @relation("Dependent", fields: [competencyId], references: [id], onDelete: Cascade)
+  requires   Competency @relation("Prerequisite", fields: [requiresId], references: [id], onDelete: Cascade)
+
+  @@id([competencyId, requiresId])
+  @@index([requiresId])
+  @@map("competency_prereq")
+}
+
+/// A known wrong form and its correction, so feedback can name the error rather
+/// than describing it. `tag` is what accumulates on `LearnerError`.
+model CompetencyError {
+  id           String @id @default(uuid()) @db.Uuid
+  competencyId String @map("competency_id")
+  wrong        String
+  right        String
+  tag          String
+
+  competency Competency @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+
+  @@unique([competencyId, tag])
+  @@index([tag])
+  @@map("competency_error")
+}
+
+/// A unit of the curriculum — a coherent set of competencies at one level.
+model Domain {
+  id          String @id
+  cefr        Cefr
+  name        String
+  description String
+
+  objectives String[] @default([])
+  contexts   String[] @default([])
+
+  requirements   DomainRequirement[]
+  lifePathLinks  LifePathDomain[]
+  dayPlans       DayPlan[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([cefr])
+  @@map("domain")
+}
+
+model DomainRequirement {
+  domainId     String     @map("domain_id")
+  competencyId String     @map("competency_id")
+  role         TargetRole
+  /// Relative pull on selection within the domain. Not a percentage.
+  weight       Float      @default(1)
+
+  domain     Domain     @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  competency Competency @relation(fields: [competencyId], references: [id], onDelete: Restrict)
+
+  @@id([domainId, competencyId])
+  @@index([competencyId])
+  @@map("domain_requires")
+}
+
+/// An exercise shape. Not an exercise: the stimulus and targets are bound at
+/// session assembly, which is what lets one template serve every Life Path.
+model Template {
+  id              String          @id
+  family          String
+  stimulusType    StimulusType    @map("stimulus_type")
+  interactionMode InteractionMode @map("interaction_mode")
+  cefrMin         Cefr            @map("cefr_min")
+  cefrMax         Cefr            @map("cefr_max")
+  durationMinSec  Int             @map("duration_min_sec")
+  durationMaxSec  Int             @map("duration_max_sec")
+  /// Ordered hints, easiest last resort first. Shown after a failed attempt.
+  scaffoldLadder  Json            @map("scaffold_ladder")
+
+  measures  TemplateMeasure[]
+  elicits   TemplateElicits[]
+  stimuli   StimulusPool[]
+  sessions  Session[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([stimulusType])
+  @@map("template")
+}
+
+/// How much to trust this template's evidence about a skill, 0..1.
+///
+/// A shadowing drill and a picture description are not equally good evidence
+/// about grammar, and mastery updates are scaled by this. Without it every
+/// exercise votes equally and the model converges on whatever is most common.
+model TemplateMeasure {
+  templateId  String @map("template_id")
+  skill       Skill
+  reliability Float
+
+  template Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@id([templateId, skill])
+  @@map("template_measures")
+}
+
+model TemplateElicits {
+  templateId   String @map("template_id")
+  competencyId String @map("competency_id")
+  /// How reliably this template actually produces the competency, 0..1.
+  strength     Float  @default(1)
+
+  template   Template   @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  competency Competency @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+
+  @@id([templateId, competencyId])
+  @@index([competencyId])
+  @@map("template_elicits")
+}
+
+/// A context skin. Changes the setting a competency is practised in, never the
+/// competency itself — Hana practises describing in a lecture hall, Samuel in a
+/// hotel lobby, and both update the same rows.
+model LifePath {
+  id       String  @id
+  name     String
+  /// Off by default; a path with no authored content must not be selectable.
+  isLive   Boolean @default(false) @map("is_live")
+  /// Fallback setting when nothing more specific is available.
+  theme    String
+
+  domains  LifePathDomain[]
+  profiles LearnerProfile[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("life_path")
+}
+
+model LifePathDomain {
+  lifePathId String @map("life_path_id")
+  domainId   String @map("domain_id")
+  priority   Int
+
+  lifePath LifePath @relation(fields: [lifePathId], references: [id], onDelete: Cascade)
+  domain   Domain   @relation(fields: [domainId], references: [id], onDelete: Cascade)
+
+  @@id([lifePathId, domainId])
+  @@index([domainId])
+  @@map("life_path_domain")
+}
+
+/// Pre-generated exercise material, addressed by what it teaches rather than by
+/// who it is for.
+///
+/// Keying on `(template, targetSetKey, theme)` is what makes review work: a
+/// competency coming due in a new context asks for a variant of an existing
+/// spec instead of a fresh invention. Generation never happens inside a
+/// session — the learner's morning is a database read.
+model StimulusPool {
+  id           String       @id @default(uuid()) @db.Uuid
+  templateId   String       @map("template_id")
+  /// Sorted, joined competency IDs. Sorted so the key is order-independent.
+  targetSetKey String       @map("target_set_key")
+  theme        String
+  stimulusType StimulusType @map("stimulus_type")
+  assetUrl     String?      @map("asset_url")
+  /// The stimulus itself, in the shape the client's renderer expects.
+  spec         Json
+
+  template Template  @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  sessions Session[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  /// The pool lookup, exactly as `findStimulus` walks it.
+  @@index([templateId, targetSetKey, theme])
+  @@index([templateId, theme])
+  @@map("stimulus_pool")
+}
+
+// ---------------------------------------------------------------------------
+// Learner
+// ---------------------------------------------------------------------------
+
+/// The account. Identity only — everything pedagogical is on `LearnerProfile`.
+///
+/// Split from the profile because they have different lifetimes and different
+/// access rules: identity is written by the Clerk webhook and read on every
+/// request, the profile is written by onboarding and read when a plan is built.
+model Learner {
+  id String @id @default(uuid()) @db.Uuid
+
+  /// Clerk's user ID. The join between their identity and ours, and the only
+  /// thing authentication looks up.
+  clerkUserId String @unique @map("clerk_user_id")
+
+  /// Mirrored from Clerk for display and support search. Clerk remains the
+  /// source of truth; the webhook keeps this in step.
+  ///
+  /// Nullable because a learner is provisioned the moment their first request
+  /// arrives, which can beat the webhook carrying their address. Null means "we
+  /// have not been told yet", which is true; a synthetic placeholder would be a
+  /// lie that reaches the settings screen and support search. Postgres permits
+  /// many nulls under a unique index, so provisioning does not serialise on it.
+  email       String? @unique
+  displayName String? @map("display_name")
+  imageUrl    String? @map("image_url")
+
+  role   Role          @default(LEARNER)
+  status LearnerStatus @default(ACTIVE)
+
+  lastSeenAt DateTime? @map("last_seen_at")
+
+  profile         LearnerProfile?
+  competencies    LearnerCompetency[]
+  errors          LearnerError[]
+  dayPlans        DayPlan[]
+  auditEvents     AuditEvent[]
+  idempotencyKeys IdempotencyKey[]
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  /// Soft delete. Every read filters on this; the purge job hard-deletes after
+  /// the grace window, which is what actually satisfies a deletion request.
+  deletedAt DateTime? @map("deleted_at")
+
+  @@index([status, deletedAt])
+  @@index([email])
+  @@map("learner")
+}
+
+/// What onboarding collected, and what the engine plans against.
+model LearnerProfile {
+  learnerId String @id @map("learner_id") @db.Uuid
+
+  cefr             Cefr             @default(A2)
+  /// First language, ISO 639-1. Drives the interference notes on a correction.
+  l1               String           @default("am")
+  ageBand          AgeBand?         @map("age_band")
+  gender           Gender           @default(UNDISCLOSED)
+  lifePathId       String?          @map("life_path_id")
+  studyField       String?          @map("study_field")
+  dailyMinutes     Int              @default(15) @map("daily_minutes")
+  feedbackLanguage FeedbackLanguage @default(ENGLISH) @map("feedback_language")
+  goalDate         DateTime?        @map("goal_date") @db.Date
+
+  /// Set when placement finishes. Until then the learner is at the default
+  /// CEFR by assumption rather than by evidence, and the profile screen says so.
+  placedAt DateTime? @map("placed_at")
+
+  /// Local midnight is what "today" means for a day plan, and it is not ours.
+  timezone String @default("Africa/Addis_Ababa")
+
+  learner  Learner   @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+  lifePath LifePath? @relation(fields: [lifePathId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([lifePathId])
+  @@map("learner_profile")
+}
+
+/// One learner's estimate for one competency. The whole learner model.
+model LearnerCompetency {
+  learnerId    String @map("learner_id") @db.Uuid
+  competencyId String @map("competency_id")
+
+  /// Probability of success next time, 0..1. Everything on the dashboard is a
+  /// weighted read of this column and nothing else.
+  mastery Float @default(0)
+  /// Days for retrievability to decay to the review threshold. Grows on a
+  /// successful recall, resets on a failure.
+  stabilityDays Float @default(1) @map("stability_days")
+  /// How many final attempts have contributed. Low counts widen the confidence
+  /// interval, which is why the dashboard can say "not yet assessed".
+  evidenceCount Int   @default(0) @map("evidence_count")
+
+  lastSeenAt   DateTime? @map("last_seen_at")
+  /// `lastSeenAt + stabilityDays`, materialised.
+  ///
+  /// Derived, and stored anyway — deliberately, and this is the only place that
+  /// happens. The scheduler's hot query is "what is due for this learner", and
+  /// a computed expression cannot be indexed usefully. It is written in the
+  /// same transaction as its two inputs, so it cannot drift. Displayed numbers
+  /// stay computed; see ADR 0002.
+  dueAt        DateTime? @map("due_at")
+
+  /// Variety penalties: the same competency drilled through the same template
+  /// against the same backdrop is weaker evidence each time.
+  lastTemplateId String? @map("last_template_id")
+  lastTheme      String? @map("last_theme")
+
+  learner    Learner    @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+  competency Competency @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@id([learnerId, competencyId])
+  /// The scheduler's query: this learner's competencies, soonest due first.
+  @@index([learnerId, dueAt])
+  @@map("learner_competency")
+}
+
+/// How often this learner makes this specific mistake. Drives "you've done this
+/// three times this week", which is the feedback that actually changes
+/// behaviour.
+model LearnerError {
+  learnerId    String   @map("learner_id") @db.Uuid
+  competencyId String   @map("competency_id")
+  tag          String
+  count        Int      @default(1)
+  lastSeenAt   DateTime @default(now()) @map("last_seen_at")
+
+  learner    Learner    @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+  competency Competency @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+
+  @@id([learnerId, competencyId, tag])
+  @@index([learnerId, lastSeenAt])
+  @@map("learner_error")
+}
+
+// ---------------------------------------------------------------------------
+// Practice
+// ---------------------------------------------------------------------------
+
+/// One learner's work for one local day.
+model DayPlan {
+  id        String   @id @default(uuid()) @db.Uuid
+  learnerId String   @map("learner_id") @db.Uuid
+  /// The learner's local date, not UTC. A plan is "today" in Addis, not in UTC.
+  date      DateTime @db.Date
+  domainId  String   @map("domain_id")
+  /// The Life Path skin applied to this day's exercises.
+  theme     String
+
+  completedAt DateTime? @map("completed_at")
+
+  learner  Learner   @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+  domain   Domain    @relation(fields: [domainId], references: [id], onDelete: Restrict)
+  sessions Session[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  /// One plan per learner per day, enforced by the database rather than by a
+  /// check-then-insert that two concurrent requests both pass.
+  @@unique([learnerId, date])
+  @@index([learnerId, date(sort: Desc)])
+  @@map("day_plan")
+}
+
+/// One exercise within a day.
+model Session {
+  id         String  @id @default(uuid()) @db.Uuid
+  dayPlanId  String  @map("day_plan_id") @db.Uuid
+  templateId String  @map("template_id")
+  stimulusId String? @map("stimulus_id") @db.Uuid
+
+  /// Position within the day. Stable, so a resumed plan resumes in order.
+  orderIndex Int @map("order_index")
+
+  /// The coach's opening line. First thing spoken, and the anchor for history.
+  prompt String
+  /// The resolved stimulus, denormalised from the pool at assembly time.
+  ///
+  /// Copied rather than joined so that regenerating or evicting a pool entry
+  /// cannot retroactively change what a completed session showed. History has
+  /// to stay true to what happened.
+  spec Json
+
+  status      SessionStatus @default(PENDING)
+  startedAt   DateTime?     @map("started_at")
+  completedAt DateTime?     @map("completed_at")
+
+  dayPlan  DayPlan       @relation(fields: [dayPlanId], references: [id], onDelete: Cascade)
+  template Template      @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  stimulus StimulusPool? @relation(fields: [stimulusId], references: [id], onDelete: SetNull)
+
+  targets    SessionTarget[]
+  turns      Turn[]
+  reflection Reflection?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([dayPlanId, orderIndex])
+  @@index([dayPlanId])
+  @@index([status])
+  @@map("session")
+}
+
+/// What this session is trying to elicit, resolved at assembly.
+model SessionTarget {
+  sessionId    String     @map("session_id") @db.Uuid
+  competencyId String     @map("competency_id")
+  role         TargetRole
+  priority     Int        @default(0)
+
+  session    Session    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  competency Competency @relation(fields: [competencyId], references: [id], onDelete: Restrict)
+
+  @@id([sessionId, competencyId])
+  @@index([competencyId])
+  @@map("session_target")
+}
+
+/// One utterance, and the coach's reply to it.
+///
+/// A turn owns everything utterance-shaped: the audio, both transcripts, the
+/// timing metrics. An `Attempt` is one competency judgement *about* a turn.
+/// Merging them meant rewriting the same transcript to three rows whenever a
+/// sentence was evidence for grammar, vocabulary and structure at once.
+model Turn {
+  id        String @id @default(uuid()) @db.Uuid
+  sessionId String @map("session_id") @db.Uuid
+  index     Int
+
+  audioUrl String? @map("audio_url")
+
+  /// What the learner actually said, fillers intact. The analysis track: this
+  /// is what grading reads, and a cleaned-up version would delete the evidence.
+  transcriptVerbatim String @map("transcript_verbatim")
+  /// The same utterance tidied — the "how it could sound" side of the reflection
+  /// screen. Null until the evaluator has produced it.
+  transcriptClean    String? @map("transcript_clean")
+
+  /// Timing and delivery, computed client-side from the recogniser and the
+  /// voice activity detector: word count, speech duration, pause count and
+  /// total, hesitations, response latency.
+  metrics Json?
+
+  /// What the coach said back. Held here rather than in its own table because
+  /// it is one-to-one with the turn and never queried independently.
+  coachReply String? @map("coach_reply")
+
+  /// Set once grading has run. Distinguishes "not graded yet" from "graded, no
+  /// evidence found", which are very different things on the profile screen.
+  evaluatedAt DateTime? @map("evaluated_at")
+
+  session  Session   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  attempts Attempt[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  /// Turn order is part of the data, and this is what stops a retried request
+  /// from inserting a duplicate turn 3.
+  @@unique([sessionId, index])
+  @@index([sessionId])
+  @@map("turn")
+}
+
+/// One competency judgement about one turn.
+///
+/// Counts, never a score. `observed` is `correct / opportunities`, computed at
+/// read time for the same reason dimensions are: a stored derived number is a
+/// number that can disagree with its inputs. Zero opportunities means no
+/// evidence, which is not the same as zero correct.
+model Attempt {
+  id           String @id @default(uuid()) @db.Uuid
+  turnId       String @map("turn_id") @db.Uuid
+  competencyId String @map("competency_id")
+
+  opportunities Int
+  correct       Int
+
+  /// How much help was showing. A correct answer at scaffold 3 is weaker
+  /// evidence than the same answer unaided, and the mastery update scales by it.
+  scaffoldLevel Int @default(0) @map("scaffold_level")
+
+  /// Retries are all recorded; exactly one of them updates mastery.
+  isFinal Boolean @default(true) @map("is_final")
+
+  /// Which known error tags fired, for `LearnerError`.
+  errorTags String[] @default([]) @map("error_tags")
+
+  turn       Turn       @relation(fields: [turnId], references: [id], onDelete: Cascade)
+  competency Competency @relation(fields: [competencyId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  /// One judgement per competency per turn. A retried grading request updates
+  /// rather than duplicating, which is what makes the whole write idempotent.
+  @@unique([turnId, competencyId])
+  @@index([competencyId, isFinal])
+  @@map("attempt")
+}
+
+/// What the learner says they took away, matched against what they got wrong.
+model Reflection {
+  sessionId       String  @id @map("session_id") @db.Uuid
+  learnerText     String  @map("learner_text")
+  matchedErrorTag String? @map("matched_error_tag")
+
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("reflection")
+}
+
+// ---------------------------------------------------------------------------
+// Operations
+// ---------------------------------------------------------------------------
+
+/// Replay protection for unsafe requests.
+///
+/// A learner on a bad connection retries `POST /turns`; without this they get
+/// two turns, two gradings and two mastery updates from one utterance. The
+/// stored response is replayed instead, so the retry is indistinguishable from
+/// the original as far as the client is concerned.
+model IdempotencyKey {
+  key       String @id
+  /// Scoped to the learner, so one learner's key cannot collide with another's
+  /// or be used to read their response.
+  ///
+  /// A real foreign key, cascading, because `response` holds a stored copy of a
+  /// reply we already sent this learner. Without the cascade a purged account
+  /// leaves that copy behind for the rest of the retention window, and an
+  /// erasure request that leaves the data readable is not an erasure.
+  learnerId String @map("learner_id") @db.Uuid
+  /// Guards against the same key being reused for a different request.
+  endpoint  String
+  requestHash String @map("request_hash")
+
+  statusCode Int   @map("status_code")
+  response   Json
+
+  createdAt DateTime @default(now()) @map("created_at")
+  /// Swept by the cleanup job. Keys are not useful forever and this table would
+  /// otherwise grow without bound.
+  expiresAt DateTime @map("expires_at")
+
+  learner Learner @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+
+  @@index([learnerId])
+  @@index([expiresAt])
+  @@map("idempotency_key")
+}
+
+/// Fixed-window rate limit counters.
+///
+/// In Postgres rather than in process memory because the limit has to hold
+/// across instances — per-process counters mean the real limit is silently
+/// multiplied by the instance count, which is the opposite of what a limit is
+/// for. Redis would be the better home and is the documented upgrade; this
+/// needs no new infrastructure and the write is a single upsert.
+model RateLimitCounter {
+  /// `{bucket}:{principal}:{windowStart}`.
+  key       String   @id
+  count     Int      @default(0)
+  expiresAt DateTime @map("expires_at")
+
+  @@index([expiresAt])
+  @@map("rate_limit_counter")
+}
+
+/// Append-only record of consequential actions.
+///
+/// Scoped to things a human would need reconstructed during an incident or a
+/// dispute: profile changes, role changes, deletions. Not a second copy of the
+/// request log — an audit table that records everything is one nobody reads.
+model AuditEvent {
+  id        String  @id @default(uuid()) @db.Uuid
+  learnerId String? @map("learner_id") @db.Uuid
+
+  /// `learner.profile.updated`, `learner.deleted`, `learner.role.changed`.
+  action String
+  /// What was acted on: `learner`, `session`, `day_plan`.
+  entity   String
+  entityId String? @map("entity_id")
+
+  /// Actor, when it differs from the subject — support acting on a learner.
+  actorId String? @map("actor_id")
+  /// Before and after, for anything that changed a value.
+  changes Json?
+
+  requestId String? @map("request_id")
+  ipHash    String? @map("ip_hash")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  learner Learner? @relation(fields: [learnerId], references: [id], onDelete: SetNull)
+
+  @@index([learnerId, createdAt(sort: Desc)])
+  @@index([action, createdAt(sort: Desc)])
+  @@map("audit_event")
 }

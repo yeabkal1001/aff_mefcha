@@ -10,7 +10,7 @@ import { templates } from "@/lib/templates";
  * Every stimulus kind, on one page.
  *
  * A working reference while the remaining fifteen templates get built: the
- * practice screen only ever shows the two or three kinds today's mission
+ * practice screen only ever shows the two or three kinds today's Day Plan
  * happens to use, so without this the other renderers are unreviewable until
  * something schedules them.
  *
@@ -28,10 +28,10 @@ export default function StimulusGalleryPage() {
         <header className="flex items-start justify-between gap-6">
           <div>
             <p className="label-eyebrow">Internal</p>
-            <h1 className="mt-2 text-[1.625rem] font-semibold tracking-tight">
+            <h1 className="mt-2 text-display-sm font-semibold tracking-tight">
               Stimulus kinds
             </h1>
-            <p className="mt-2 max-w-[32rem] text-[0.9375rem] leading-relaxed text-muted-foreground">
+            <p className="mt-2 max-w-[32rem] text-body leading-relaxed text-muted-foreground">
               Ten renderers covering all eighteen exercise templates. Toggle compact to see
               the state each one enters while a correction is on screen.
             </p>
@@ -40,7 +40,7 @@ export default function StimulusGalleryPage() {
           <button
             type="button"
             onClick={() => setCompact((c) => !c)}
-            className="shrink-0 rounded-full bg-foreground px-4 py-2 text-[0.8125rem] font-medium text-background"
+            className="shrink-0 rounded-full bg-foreground px-4 py-2 text-ui font-medium text-background"
           >
             {compact ? "Show full" : "Show compact"}
           </button>
@@ -52,8 +52,8 @@ export default function StimulusGalleryPage() {
           {gallery.map(({ spec, usedBy }) => (
             <section key={usedBy.join("-")}>
               <div className="mb-3 flex items-baseline gap-2.5">
-                <h2 className="text-[0.9375rem] font-semibold tracking-tight">{spec.kind}</h2>
-                <p className="text-[0.75rem] text-muted-foreground">
+                <h2 className="text-body font-semibold tracking-tight">{spec.kind}</h2>
+                <p className="text-caption text-muted-foreground">
                   {usedBy
                     .map((id) => templates.find((t) => t.id === id)?.name ?? id)
                     .join(" · ")}

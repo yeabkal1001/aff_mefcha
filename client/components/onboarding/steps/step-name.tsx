@@ -20,6 +20,8 @@ export function StepName({ index, count, onNext, onBack }: StepProps) {
       onBack={onBack}
       onNext={onNext}
       canAdvance={ready}
+      requirement="Tell your coach what to call you to continue."
+      focusHeading={false}
     >
       <form
         onSubmit={(event) => {
@@ -33,7 +35,7 @@ export function StepName({ index, count, onNext, onBack }: StepProps) {
           onChange={(event) => updateDraft({ name: event.target.value })}
           placeholder="Hana"
           aria-label="Your name"
-          className="h-12 rounded-xl border-panel-border bg-panel text-center text-[1rem] backdrop-blur-xl"
+          className="h-12 rounded-xl border-panel-border bg-panel text-center text-base backdrop-blur-xl"
         />
       </form>
     </OnboardingShell>

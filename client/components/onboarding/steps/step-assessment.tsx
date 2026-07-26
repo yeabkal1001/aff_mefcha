@@ -1,14 +1,18 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { AmbientBackground } from "@/components/session/ambient-background";
 import { Stimulus } from "@/components/session/stimulus";
 import { VoiceOrb } from "@/components/session/voice-orb";
 import { Button } from "@/components/ui/button";
 import { updateDraft } from "@/hooks/use-onboarding-draft";
-import { assessmentPrompts, type SessionState } from "@/lib/mock-data";
+import {
+  assessmentPrompts,
+  type AssessmentPrompt,
+} from "@/lib/assessment-prompts";
+import type { SessionPhase } from "@/lib/session/phase";
 
 import type { StepProps } from "./types";
 
@@ -25,8 +29,12 @@ const PROMPT_MS = 2600;
 export function StepAssessment({ onNext }: StepProps) {
   const [index, setIndex] = useState(0);
 
+  // Local, so there is no load state and no way for this screen to fail before
+  // the learner has spoken. See `lib/assessment-prompts.ts`.
+  const list = assessmentPrompts;
+
   const advance = () => {
-    if (index < assessmentPrompts.length - 1) {
+    if (index < list.length - 1) {
       setIndex(index + 1);
       return;
     }
@@ -40,10 +48,13 @@ export function StepAssessment({ onNext }: StepProps) {
     <div className="relative flex h-dvh flex-col overflow-hidden">
       <AmbientBackground state="idle" />
 
-      <header className="relative z-10 flex shrink-0 items-center justify-center gap-2 px-6 pt-6">
-        {assessmentPrompts.map((prompt, i) => (
+      <header
+        className="relative z-10 flex shrink-0 items-center justify-center gap-2 px-6 pt-6"
+        aria-hidden
+      >
+        {list.map((prompt, i) => (
           <span
-            key={prompt.template}
+            key={prompt.templateId}
             className={
               "h-[3px] w-12 rounded-full transition-colors duration-500 " +
               (i <= index ? "bg-foreground/45" : "bg-foreground/[0.07]")
@@ -54,8 +65,10 @@ export function StepAssessment({ onNext }: StepProps) {
 
       <AnimatePresence mode="wait">
         <AssessmentTurn
-          key={assessmentPrompts[index].template}
+          key={list[index].templateId}
+          prompt={list[index]}
           index={index}
+          count={list.length}
           onComplete={advance}
         />
       </AnimatePresence>
@@ -64,35 +77,53 @@ export function StepAssessment({ onNext }: StepProps) {
 }
 
 function AssessmentTurn({
+  prompt,
   index,
+  count,
   onComplete,
 }: {
+  prompt: AssessmentPrompt;
   index: number;
+  count: number;
   onComplete: () => void;
 }) {
-  const prompt = assessmentPrompts[index];
   const [recording, setRecording] = useState(false);
   const [remaining, setRemaining] = useState(prompt.seconds);
 
+  // The turn can end two ways — the clock, or "I'm done" — and both can happen
+  // inside the 400ms this component spends animating out. Fire once.
+  const completed = useRef(false);
+  const complete = useCallback(() => {
+    if (completed.current) return;
+    completed.current = true;
+    onComplete();
+  }, [onComplete]);
+
   // The coach reads the prompt, then hands over.
   useEffect(() => {
-    const timer = setTimeout(() => setRecording(true), PROMPT_MS);
-    return () => clearTimeout(timer);
+    const timer = window.setTimeout(() => setRecording(true), PROMPT_MS);
+    return () => window.clearTimeout(timer);
   }, []);
 
   // The learner's turn runs on a clock so nobody has to decide when to stop.
+  // The display counts down and stops at zero; a separate timeout owns the
+  // ending, so the countdown cannot run negative and re-trigger it every tick.
   useEffect(() => {
     if (!recording) return;
-    const id = setInterval(() => setRemaining((left) => left - 1), 1000);
-    return () => clearInterval(id);
-  }, [recording]);
 
-  useEffect(() => {
-    if (remaining > 0) return;
-    onComplete();
-  }, [remaining, onComplete]);
+    const tick = window.setInterval(
+      () => setRemaining((left) => Math.max(0, left - 1)),
+      1000,
+    );
+    const end = window.setTimeout(complete, prompt.seconds * 1000);
 
-  const state: SessionState = recording ? "listening" : "speaking";
+    return () => {
+      window.clearInterval(tick);
+      window.clearTimeout(end);
+    };
+  }, [recording, complete, prompt.seconds]);
+
+  const state: SessionPhase = recording ? "listening" : "speaking";
   const elapsed = 1 - remaining / prompt.seconds;
 
   return (
@@ -101,15 +132,15 @@ function AssessmentTurn({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -14 }}
       transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-      className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 py-8"
+      className="relative z-10 flex flex-1 flex-col items-center justify-center px-5 py-8 sm:px-6"
     >
       <p className="label-eyebrow">
-        Part {index + 1} of {assessmentPrompts.length}
+        Part {index + 1} of {count}
       </p>
 
-      <VoiceOrb state={state} className="mt-6 [--orb-size:7rem]" />
+      <VoiceOrb state={state} className="mt-6 [--orb-size:clamp(5.5rem,20vw,7rem)]" />
 
-      <p className="mt-9 max-w-[26rem] text-center text-[1.0625rem] font-medium leading-relaxed text-foreground/80">
+      <p className="mt-9 max-w-[26rem] text-center text-lead font-medium leading-relaxed text-balance text-foreground/80">
         {prompt.instruction}
       </p>
 
@@ -125,7 +156,15 @@ function AssessmentTurn({
       <div className="mt-9 flex h-16 flex-col items-center justify-center gap-3">
         {recording ? (
           <>
-            <div className="h-[3px] w-44 overflow-hidden rounded-full bg-foreground/[0.08]">
+            <div
+              className="h-[3px] w-44 overflow-hidden rounded-full bg-foreground/[0.08]"
+              role="progressbar"
+              aria-label="Time remaining in this part"
+              aria-valuemin={0}
+              aria-valuemax={prompt.seconds}
+              aria-valuenow={remaining}
+              aria-valuetext={`${remaining} seconds left`}
+            >
               <motion.div
                 className="h-full rounded-full bg-foreground/40"
                 initial={false}
@@ -136,14 +175,14 @@ function AssessmentTurn({
             <Button
               variant="ghost"
               size="sm"
-              onClick={onComplete}
-              className="h-8 rounded-full text-[0.8125rem] text-muted-foreground"
+              onClick={complete}
+              className="h-8 rounded-full text-ui text-muted-foreground"
             >
               I&apos;m done
             </Button>
           </>
         ) : (
-          <p className="text-[0.8125rem] text-muted-foreground">
+          <p className="text-ui text-muted-foreground">
             Listen, then take your time.
           </p>
         )}

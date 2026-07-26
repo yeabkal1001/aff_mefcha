@@ -1,0 +1,12 @@
+{
+  "//": "Type-aware linting needs a project that contains every file being linted. tsconfig.json deliberately contains only src, because it describes the build.",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "composite": false,
+    "declaration": false,
+    "rootDir": "."
+  },
+  "include": ["src/**/*.ts", "tests/**/*.ts", "prisma/**/*.ts", "*.ts", "*.mjs"],
+  "exclude": ["node_modules", "dist"]
+}

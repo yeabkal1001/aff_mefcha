@@ -3,7 +3,7 @@
 import { ArrowRight, X } from "lucide-react";
 import { motion } from "motion/react";
 
-import type { Correction } from "@/lib/mock-data";
+import type { Correction } from "@/lib/api/schemas";
 
 interface CorrectionCardProps {
   correction: Correction;
@@ -26,7 +26,7 @@ export function CorrectionCard({ correction, onDismiss }: CorrectionCardProps) {
       animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
       exit={{ opacity: 0, y: -10, filter: "blur(8px)" }}
       transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-      className="surface-panel relative w-full max-w-[25rem] rounded-[1.25rem] px-6 py-5 shadow-[0_24px_70px_-32px_oklch(0.4_0.06_280/40%)]"
+      className="surface-panel relative w-full max-w-[25rem] rounded-[1.25rem] px-6 py-5 shadow-panel"
       role="status"
       aria-live="polite"
     >
@@ -41,13 +41,13 @@ export function CorrectionCard({ correction, onDismiss }: CorrectionCardProps) {
 
       <p className="label-eyebrow">You said</p>
 
-      <p className="mt-2.5 pr-6 text-[0.9375rem] leading-relaxed text-foreground/75">
+      <p className="mt-2.5 pr-6 text-body leading-relaxed text-foreground/75">
         {before}
         <span className="mark-error">{correction.errorSpan}</span>
         {after}
       </p>
 
-      <p className="mt-2.5 flex items-start gap-2 text-[0.9375rem] leading-relaxed">
+      <p className="mt-2.5 flex items-start gap-2 text-body leading-relaxed">
         <ArrowRight
           className="mt-[0.3rem] size-3.5 shrink-0 text-coach-correct/70"
           strokeWidth={2.5}
@@ -60,7 +60,7 @@ export function CorrectionCard({ correction, onDismiss }: CorrectionCardProps) {
 
       <p className="label-eyebrow mt-4">Why</p>
 
-      <p className="mt-2 text-[0.875rem] leading-relaxed text-foreground/70">
+      <p className="mt-2 text-body leading-relaxed text-foreground/70">
         {correction.why}
       </p>
     </motion.div>

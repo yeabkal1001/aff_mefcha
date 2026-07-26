@@ -23,7 +23,7 @@ export function StimulusPanel({
   return (
     <div
       className={cn(
-        "surface-panel overflow-hidden rounded-2xl shadow-[0_18px_50px_-28px_oklch(0.4_0.06_280/45%)]",
+        "surface-panel overflow-hidden rounded-2xl shadow-panel",
         compact ? "p-1" : "p-1.5",
         className,
       )}

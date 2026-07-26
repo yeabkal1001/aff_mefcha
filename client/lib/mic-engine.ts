@@ -25,9 +25,33 @@
  * gaps inside ordinary speech are longer than people think.
  */
 
+/**
+ * Why the microphone is unavailable.
+ *
+ * A single `blocked` flag sent every failure to the same sentence — "allow
+ * access in your address bar" — which is wrong advice for four of these five
+ * and actively misleading on `insecure`, where there is no prompt to allow.
+ * The learner can only fix the problem they actually have.
+ */
+export type MicBlockReason =
+  /** The learner said no, or the browser remembers them saying no. */
+  | "denied"
+  /** No capture device at all. */
+  | "no-device"
+  /** Another application holds the device.  */
+  | "in-use"
+  /** Not HTTPS and not localhost, so `getUserMedia` does not exist. */
+  | "insecure"
+  /** The prompt was never answered, or the device never opened. */
+  | "timeout"
+  /** Everything else, including a track that died mid-session. */
+  | "unknown";
+
 export interface MicStatus {
   /** Permission refused, no device, or the track died. */
   blocked: boolean;
+  /** Set whenever `blocked` is, so the notice can say something useful. */
+  reason: MicBlockReason | null;
   /** The stream is live, but nothing above the noise floor has arrived yet. */
   silent: boolean;
   /** Speech right now. */
@@ -119,6 +143,7 @@ let openedStreamAt = 0;
 
 let status: MicStatus = {
   blocked: false,
+  reason: null,
   silent: false,
   speaking: false,
   everHeard: false,
@@ -130,6 +155,7 @@ function publish(next: Partial<MicStatus>) {
   const merged = { ...status, ...next };
   if (
     merged.blocked === status.blocked &&
+    merged.reason === status.reason &&
     merged.silent === status.silent &&
     merged.speaking === status.speaking &&
     merged.everHeard === status.everHeard
@@ -138,6 +164,61 @@ function publish(next: Partial<MicStatus>) {
   }
   status = merged;
   listeners.forEach((listener) => listener(status));
+}
+
+/**
+ * Map a `getUserMedia` rejection to something the learner can act on.
+ *
+ * The names are from the Media Capture spec; browsers disagree on which they
+ * throw for a device that is busy, so `NotReadableError` and `AbortError` are
+ * both treated as "something else has it".
+ */
+function reasonFor(error: unknown): MicBlockReason {
+  const name = error instanceof Error ? error.name : "";
+  switch (name) {
+    case "NotAllowedError":
+    case "SecurityError":
+      return "denied";
+    case "NotFoundError":
+    case "OverconstrainedError":
+      return "no-device";
+    case "NotReadableError":
+    case "AbortError":
+      return "in-use";
+    default:
+      return "unknown";
+  }
+}
+
+/**
+ * Give up on a permission prompt nobody is answering.
+ *
+ * `getUserMedia` never settles while the prompt is open, and a learner who
+ * ignores it leaves `starting` pending forever — which, because `acquireMic`
+ * bails while a start is in flight, means no later attempt can ever run. The
+ * session would sit in `listening` against a microphone that was never opened.
+ */
+const OPEN_TIMEOUT_MS = 20_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      const error = new Error("getUserMedia timed out");
+      error.name = "TimeoutError";
+      reject(error);
+    }, ms);
+
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
 }
 
 export function subscribe(listener: (status: MicStatus) => void): () => void {
@@ -154,27 +235,76 @@ export function getMicStatus(): MicStatus {
   return status;
 }
 
+/**
+ * Bring an audio context to `running`, now or at the first opportunity.
+ *
+ * Resolves immediately when the page has already been interacted with. When it
+ * has not, the gesture listeners are `once` and passive, and they remove each
+ * other as soon as any one of them fires.
+ */
+async function resumeWhenAllowed(target: AudioContext) {
+  try {
+    await target.resume();
+    if (target.state === "running") return;
+  } catch {
+    // Autoplay policy. Fall through and wait for a gesture.
+  }
+
+  const events = ["pointerdown", "keydown", "touchstart"] as const;
+
+  const wake = () => {
+    events.forEach((event) => window.removeEventListener(event, wake));
+    // The context may have been torn down while we waited.
+    if (target.state === "closed") return;
+    void target.resume();
+  };
+
+  events.forEach((event) =>
+    window.addEventListener(event, wake, { once: true, passive: true }),
+  );
+}
+
+/** Clear every timer the detector carries, so a new stream starts cold. */
+function resetDetector() {
+  level = 0;
+  noiseFloor = 0.01;
+  peak = 0.05;
+  firstAboveAt = 0;
+  lastAboveAt = 0;
+  lastLoudAt = 0;
+}
+
 async function open() {
-  if (typeof navigator === "undefined" || !navigator.mediaDevices) {
-    publish({ blocked: true });
+  if (typeof navigator === "undefined") return;
+
+  // `navigator.mediaDevices` is undefined outside a secure context, so on a
+  // plain-http deploy the microphone is not blocked — it does not exist, and
+  // no amount of clicking the address bar will produce it. Say which.
+  if (!navigator.mediaDevices?.getUserMedia) {
+    const secure = typeof window !== "undefined" && window.isSecureContext;
+    publish({ blocked: true, reason: secure ? "unknown" : "insecure" });
     return;
   }
 
   try {
-    const granted = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        /**
-         * Noise suppression and auto gain are left on: they make the learner
-         * easier to transcribe, which matters more than a pristine level
-         * reading, and the engine calibrates around whatever they do. Echo
-         * cancellation matters once the coach's voice is coming out of the
-         * speakers, so the mic does not hear the coach and call it the learner.
-         */
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true,
-      },
-    });
+    const granted = await withTimeout(
+      navigator.mediaDevices.getUserMedia({
+        audio: {
+          /**
+           * Noise suppression and auto gain are left on: they make the learner
+           * easier to transcribe, which matters more than a pristine level
+           * reading, and the engine calibrates around whatever they do. Echo
+           * cancellation matters once the coach's voice is coming out of the
+           * speakers, so the mic does not hear the coach and call it the
+           * learner.
+           */
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      }),
+      OPEN_TIMEOUT_MS,
+    );
 
     // Released while we were waiting for permission.
     if (refCount === 0) {
@@ -184,15 +314,29 @@ async function open() {
 
     stream = granted;
     openedStreamAt = performance.now();
-    publish({ blocked: false, silent: false });
+
+    // A fresh stream is a fresh room. Leaving the detector's timers set from
+    // the previous one made the first turn after a reopen end instantly:
+    // `lastLoudAt` was minutes in the past, so the very first frame of speech
+    // was already past its hangover.
+    resetDetector();
+    publish({ blocked: false, reason: null, silent: false });
 
     const track = granted.getAudioTracks()[0];
-    track?.addEventListener("ended", () => publish({ blocked: true }));
+    // The device was unplugged, or the OS revoked the capture.
+    track?.addEventListener("ended", () =>
+      publish({ blocked: true, reason: "no-device", speaking: false }),
+    );
 
     context = new AudioContext();
-    // Chrome starts a context suspended unless the page has been interacted
-    // with. Resuming is a no-op when it is already running.
-    if (context.state === "suspended") await context.resume();
+    // Chrome starts a context suspended until the page has been interacted
+    // with, and `resume()` *rejects* rather than waiting when it is called too
+    // early. Awaiting it unguarded meant an autoplay-policy refusal fell into
+    // the catch below and was reported as a blocked microphone — to a learner
+    // who had just granted permission, with a working device, and no way to
+    // clear it. The stream is fine; only the analysis graph is asleep. Arm it
+    // to wake on the next gesture and carry on.
+    void resumeWhenAllowed(context);
 
     const analyser = context.createAnalyser();
     analyser.fftSize = 2048;
@@ -283,8 +427,20 @@ async function open() {
     };
 
     frame = window.setInterval(measure, SAMPLE_MS);
-  } catch {
-    publish({ blocked: true });
+  } catch (error) {
+    // Denied, no device, or the device is held by something else. Tear down
+    // whatever got as far as existing — a granted stream with a failed
+    // AudioContext behind it would otherwise sit here holding the recording
+    // indicator on while measuring nothing, and block the retry guard in
+    // `acquireMic`.
+    closeNow();
+    publish({
+      blocked: true,
+      reason:
+        error instanceof Error && error.name === "TimeoutError"
+          ? "timeout"
+          : reasonFor(error),
+    });
   }
 }
 
@@ -306,14 +462,24 @@ if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
   });
 }
 
-/** Open the microphone, or join the one already open. */
+/**
+ * Open the microphone, or join the one already open.
+ *
+ * The guard is on the stream rather than on the holder count. It used to bail
+ * whenever `refCount > 1`, which meant that once an attempt had failed — a
+ * denied permission, a device already in use — no later holder could trigger
+ * another one while the first was still mounted. A learner who granted
+ * permission in browser settings had to leave the screen and come back before
+ * anything would try again. A repeated attempt after a standing denial is
+ * rejected by the browser immediately and costs nothing.
+ */
 export function acquireMic() {
   refCount += 1;
   if (closeTimer) {
     clearTimeout(closeTimer);
     closeTimer = null;
   }
-  if (refCount > 1 || starting || stream) return;
+  if (starting || stream) return;
   starting = open().finally(() => {
     starting = null;
   });
@@ -346,12 +512,43 @@ function closeNow() {
 
   stream = null;
   context = null;
-  level = 0;
-  firstAboveAt = 0;
-  lastAboveAt = 0;
-  noiseFloor = 0.01;
-  peak = 0.05;
+  resetDetector();
+  // `blocked` is deliberately left alone. It describes the device, not the
+  // stream, and clearing it here would flash "microphone ready" between a
+  // denial and the next attempt.
   publish({ speaking: false, silent: false, everHeard: false });
+}
+
+/**
+ * Try again after a failure, discarding the standing verdict.
+ *
+ * The retry path for a learner who has just fixed the problem — granted
+ * permission, plugged a headset back in, quit the app that held the device.
+ * Without this the only way back was a page reload.
+ */
+export function retryMic() {
+  if (starting) return;
+  closeNow();
+  publish({ blocked: false, reason: null });
+  if (refCount > 0) {
+    starting = open().finally(() => {
+      starting = null;
+    });
+  }
+}
+
+/**
+ * A device appeared or vanished while we were blocked.
+ *
+ * Plugging in a headset after arriving with no microphone is the single most
+ * common way a learner fixes this, and it fires no other event we listen for.
+ * Only retried while someone is actually waiting on the mic, and only out of a
+ * blocked state, so this never disturbs a healthy stream.
+ */
+if (typeof navigator !== "undefined" && navigator.mediaDevices) {
+  navigator.mediaDevices.addEventListener("devicechange", () => {
+    if (refCount > 0 && status.blocked) retryMic();
+  });
 }
 
 /**

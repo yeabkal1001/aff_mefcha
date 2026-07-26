@@ -1,5 +1,7 @@
 "use client";
 
+import { assertNever } from "@/lib/utils";
+
 import { AudioQuestionStimulusView, AudioStimulusView } from "./audio-stimulus";
 import {
   ChoiceStimulusView,
@@ -74,6 +76,11 @@ export function Stimulus({
  * A picture wants to be large and a one-line question does not, and the
  * difference has to be declared somewhere. Here, rather than in the stage,
  * because it is a property of the stimulus rather than of the screen.
+ *
+ * Every number is a preference and none is a floor: the stage caps them at the
+ * width of the column, so 460 means "as wide as 460 if there is room" rather
+ * than "460 or overflow". That is why these can stay plain numbers — a spring
+ * can animate between two of them, and cannot animate between two `clamp()`s.
  */
 export function stimulusWidth(spec: StimulusSpec): number {
   switch (spec.kind) {
@@ -104,7 +111,17 @@ export function compactStimulusWidth(spec: StimulusSpec): number {
     case "image_pair":
     case "image_sequence":
       return 200;
-    default:
+    case "audio":
+    case "audio_question":
+    case "text":
+    case "choice":
+    case "statement":
+    case "topic":
+    case "scenario":
       return 320;
+    default:
+      // A `default: return 320` here is how a new stimulus kind ships looking
+      // almost right instead of failing to compile.
+      return assertNever(spec, "stimulus kind");
   }
 }

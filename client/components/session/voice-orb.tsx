@@ -1,13 +1,14 @@
 "use client";
 
+import { useReducedMotion } from "motion/react";
 import { useEffect, useRef } from "react";
 
 import { useAudioLevel } from "@/hooks/use-audio-level";
-import type { SessionState } from "@/lib/mock-data";
+import type { SessionPhase } from "@/lib/session/phase";
 import { cn } from "@/lib/utils";
 
 interface VoiceOrbProps {
-  state: SessionState;
+  state: SessionPhase;
   className?: string;
 }
 
@@ -22,10 +23,17 @@ interface VoiceOrbProps {
 export function VoiceOrb({ state, className }: VoiceOrbProps) {
   const { levelRef } = useAudioLevel(state);
   const orbRef = useRef<HTMLDivElement>(null);
+  const reducedMotion = useReducedMotion();
 
   useEffect(() => {
     const node = orbRef.current;
     if (!node) return;
+
+    // Reduced motion: paint the held level once and leave the compositor alone.
+    if (reducedMotion) {
+      node.style.setProperty("--level", levelRef.current.toFixed(3));
+      return;
+    }
 
     let raf = 0;
     let painted = -1;
@@ -42,7 +50,7 @@ export function VoiceOrb({ state, className }: VoiceOrbProps) {
 
     raf = requestAnimationFrame(paint);
     return () => cancelAnimationFrame(raf);
-  }, [levelRef]);
+  }, [levelRef, reducedMotion, state]);
 
   return (
     <div
@@ -52,17 +60,22 @@ export function VoiceOrb({ state, className }: VoiceOrbProps) {
       role="img"
       aria-label={ORB_LABELS[state]}
     >
-      <div className="orb-glow" aria-hidden />
-
-      {state === "speaking" && (
-        <>
-          <span className="orb-ripple" aria-hidden />
-          <span className="orb-ripple" aria-hidden />
-          <span className="orb-ripple" aria-hidden />
-        </>
-      )}
-
+      {/* Glow and rings sit inside the drifting body, not beside it, so the
+          whole orb moves as one object. See the note in globals.css. */}
       <div className="orb-body">
+        <div className="orb-glow" aria-hidden />
+
+        {state === "speaking" &&
+          !reducedMotion &&
+          RIPPLE_DELAYS.map((delay) => (
+            <span
+              key={delay}
+              className="orb-ripple"
+              style={{ "--ripple-delay": `${delay}s` } as React.CSSProperties}
+              aria-hidden
+            />
+          ))}
+
         <div className="orb-sphere" aria-hidden />
         <div className="orb-highlight" aria-hidden />
       </div>
@@ -70,7 +83,10 @@ export function VoiceOrb({ state, className }: VoiceOrbProps) {
   );
 }
 
-const ORB_LABELS: Record<SessionState, string> = {
+/** Evenly spaced across the 2.6s ripple period, so one is always mid-flight. */
+const RIPPLE_DELAYS = [0, 0.85, 1.7];
+
+const ORB_LABELS: Record<SessionPhase, string> = {
   idle: "Coach is waiting",
   listening: "Coach is listening to you",
   thinking: "Coach is thinking",

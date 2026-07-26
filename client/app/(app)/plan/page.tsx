@@ -3,13 +3,14 @@
 import { ArrowRight, Check, Info } from "lucide-react";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 
-import { AmbientBackground } from "@/components/session/ambient-background";
-import { AppSidebar } from "@/components/sidebar/app-sidebar";
+import { Button } from "@/components/ui/button";
+import { useMe } from "@/hooks/queries";
 import { useOnboardingDraft } from "@/hooks/use-onboarding-draft";
+import { valueOf, fromQuery } from "@/lib/api/async";
 import { buildLearnerProfile } from "@/lib/learner-profile";
-import { dailyProgress } from "@/lib/mock-data";
+import { profileToDraft } from "@/lib/onboarding-replay";
 import { phaseRange, projectOutline, type OutlinePhase } from "@/lib/study-outline";
 import { cn } from "@/lib/utils";
 
@@ -23,60 +24,63 @@ import { cn } from "@/lib/utils";
  * claims to know what Tuesday's exercise will be.
  */
 export default function PlanPage() {
-  const [collapsed, setCollapsed] = useState(false);
   const draft = useOnboardingDraft();
+  const learner = valueOf(fromQuery(useMe()));
 
-  const profile = useMemo(() => buildLearnerProfile(draft), [draft]);
+  // The account wins once there is one. It is the answers as they stand after
+  // any change made in settings, and it is the only copy that exists on a
+  // second device — the draft is per-browser by design.
+  const answers = useMemo(
+    () => (learner ? profileToDraft(learner) : draft),
+    [draft, learner],
+  );
+
+  const profile = useMemo(() => buildLearnerProfile(answers), [answers]);
   const outline = useMemo(() => projectOutline(profile), [profile]);
 
   return (
-    <div className="relative flex h-dvh overflow-hidden">
-      <AmbientBackground state="idle" />
+    <main className="relative z-10 min-w-0 flex-1 overflow-y-auto px-4 pb-9 pt-14 sm:px-6 md:px-8 md:pt-9">
+      <div className="mx-auto max-w-[44rem]">
+        <header>
+          <p className="label-eyebrow">Your next 30 days</p>
+          <h1 className="mt-2 text-display-sm font-semibold leading-tight tracking-tight">
+            {profile.name
+              ? `${profile.name}, here's the road ahead.`
+              : "Here's the road ahead."}
+          </h1>
+          <p className="mt-2.5 max-w-[34rem] text-body leading-relaxed text-muted-foreground">
+            Built from your {profile.lifePath.name.toLowerCase()} path at level{" "}
+            {profile.cefr}, at {profile.budget.minutes} minutes a day. That is{" "}
+            {outline.totalActivities} activities across{" "}
+            {Math.round(outline.totalMinutes / 60)} hours of speaking.
+          </p>
+        </header>
 
-      <AppSidebar
-        collapsed={collapsed}
-        onToggle={() => setCollapsed((value) => !value)}
-        speakingMinutes={dailyProgress.speakingMinutes}
-        corrections={dailyProgress.corrections}
-      />
+        <Caveat placed={outline.placed} />
 
-      <main className="relative z-10 flex-1 overflow-y-auto px-8 py-9">
-        <div className="mx-auto max-w-[44rem]">
-          <header>
-            <p className="label-eyebrow">Your next 30 days</p>
-            <h1 className="mt-2 text-[1.75rem] font-semibold leading-tight tracking-tight">
-              {profile.name ? `${profile.name}, here's the road ahead.` : "Here's the road ahead."}
-            </h1>
-            <p className="mt-2.5 max-w-[34rem] text-[0.9375rem] leading-relaxed text-muted-foreground">
-              Built from your {profile.lifePath.name.toLowerCase()} path at level{" "}
-              {profile.cefr}, at {profile.budget.minutes} minutes a day. That is{" "}
-              {outline.totalActivities} activities across{" "}
-              {Math.round(outline.totalMinutes / 60)} hours of speaking.
-            </p>
-          </header>
+        <ol className="mt-8 space-y-3">
+          {outline.phases.map((phase, i) => (
+            <Phase
+              key={phase.domain.id}
+              phase={phase}
+              index={i}
+              current={i === 0}
+            />
+          ))}
+        </ol>
 
-          <Caveat placed={outline.placed} />
+        <Horizon reachesNextBand={outline.reachesNextBand} cefr={profile.cefr} />
 
-          <ol className="mt-8 space-y-3">
-            {outline.phases.map((phase, i) => (
-              <Phase key={phase.domain.id} phase={phase} index={i} current={i === 0} />
-            ))}
-          </ol>
-
-          <Horizon reachesNextBand={outline.reachesNextBand} cefr={profile.cefr} />
-
-          <div className="mt-8 flex justify-center">
-            <Link
-              href="/practice"
-              className="inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-[0.9375rem] font-medium text-background transition hover:opacity-90"
-            >
-              Start today&apos;s mission
+        <div className="mt-8 flex justify-center">
+          <Button asChild size="lg" className="rounded-full">
+            <Link href="/practice">
+              Start Today&apos;s Mission
               <ArrowRight className="size-4" strokeWidth={2} />
             </Link>
-          </div>
+          </Button>
         </div>
-      </main>
-    </div>
+      </div>
+    </main>
   );
 }
 
@@ -92,7 +96,7 @@ function Caveat({ placed }: { placed: boolean }) {
   return (
     <div className="mt-5 flex items-start gap-2.5 rounded-xl bg-foreground/[0.035] px-4 py-3">
       <Info className="mt-[3px] size-3.5 shrink-0 text-muted-foreground" strokeWidth={2} />
-      <p className="text-[0.8125rem] leading-relaxed text-muted-foreground">
+      <p className="text-ui leading-relaxed text-muted-foreground">
         {placed ? (
           <>
             This is the shape of your next month, not a timetable. Your coach picks each
@@ -133,16 +137,16 @@ function Phase({
       <div className="flex items-baseline justify-between gap-4">
         <p className="label-eyebrow">{phaseRange(phase)}</p>
         {current && (
-          <span className="rounded-full bg-foreground/[0.06] px-2 py-0.5 text-[0.5625rem] font-semibold uppercase tracking-wide text-muted-foreground">
+          <span className="rounded-full bg-foreground/[0.06] px-2 py-0.5 text-micro font-semibold uppercase tracking-wide text-muted-foreground">
             Starting here
           </span>
         )}
       </div>
 
-      <h2 className="mt-1.5 text-[1.0625rem] font-semibold leading-tight tracking-tight">
+      <h2 className="mt-1.5 text-lead font-semibold leading-tight tracking-tight">
         {phase.domain.name}
       </h2>
-      <p className="mt-1 text-[0.8125rem] leading-relaxed text-muted-foreground">
+      <p className="mt-1 text-ui leading-relaxed text-muted-foreground">
         {phase.theme}
       </p>
 
@@ -153,14 +157,14 @@ function Phase({
               className="mt-[3px] size-3 shrink-0 text-coach-correct"
               strokeWidth={3}
             />
-            <span className="text-[0.8125rem] leading-snug text-foreground/80">
+            <span className="text-ui leading-snug text-foreground/80">
               {objective}
             </span>
           </li>
         ))}
       </ul>
 
-      <p className="mt-3 border-t border-border/60 pt-2.5 text-[0.75rem] text-muted-foreground">
+      <p className="mt-3 border-t border-border/60 pt-2.5 text-caption text-muted-foreground">
         About {phase.activities} activities
       </p>
     </motion.li>
@@ -177,7 +181,7 @@ function Horizon({
   return (
     <div className="mt-6 rounded-2xl border border-dashed border-border px-5 py-4">
       <p className="label-eyebrow">After that</p>
-      <p className="mt-1.5 text-[0.875rem] leading-relaxed text-muted-foreground">
+      <p className="mt-1.5 text-body leading-relaxed text-muted-foreground">
         {reachesNextBand ? (
           <>
             Thirty days covers every {cefr} domain on your path. Clearing them all to mastery

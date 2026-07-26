@@ -13,26 +13,22 @@
  * in the curriculum appears here whether or not the demo reaches it.
  */
 
+import type { StimulusSpec } from "@/components/session/stimulus/types";
+
 /**
  * What the learner is given to work from.
  *
  * These are the `stimulus_type` values in the curriculum, normalised. Several
  * templates document alternatives — `EX014` is "Image / Audio / Text" — which
  * means the generator picks one per session, not that the screen shows three.
- * So the union below is the set of things that can be rendered, and a session
+ * So the set below is the set of things that can be rendered, and a session
  * names exactly one.
+ *
+ * Derived from the rendered union rather than restated. The two were written
+ * out separately and could drift, at which point a template could name a
+ * stimulus no component knows how to draw.
  */
-export type StimulusKind =
-  | "image"
-  | "image_pair"
-  | "image_sequence"
-  | "audio"
-  | "audio_question"
-  | "text"
-  | "choice"
-  | "statement"
-  | "topic"
-  | "scenario";
+export type StimulusKind = StimulusSpec["kind"];
 
 /** Who talks, and how the turn ends. */
 export type InteractionMode = "monologue" | "dialogue" | "repetition";

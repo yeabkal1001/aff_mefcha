@@ -17,13 +17,9 @@
  * the learner can be expected to say.
  */
 
-export type SceneId =
-  | "campus_courtyard"
-  | "cafe_counter"
-  | "market_stall"
-  | "hotel_lobby"
-  | "crowded_bus"
-  | "quiet_library";
+import { type SceneId } from "./scene-ids";
+
+export { sceneIds, type SceneId } from "./scene-ids";
 
 export interface Scene {
   id: SceneId;

@@ -14,8 +14,13 @@ services:
       POSTGRES_USER: coach
       POSTGRES_PASSWORD: coach
       POSTGRES_DB: english_coach
+    # Not 5432. Developers routinely have another Postgres — a system install,
+    # or another project's container — already on the default port, and the
+    # failure when they do is a confusing authentication error against the
+    # wrong server rather than a refused connection. A dedicated port makes
+    # "am I talking to the right database" unambiguous.
     ports:
-      - "5432:5432"
+      - "55432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:

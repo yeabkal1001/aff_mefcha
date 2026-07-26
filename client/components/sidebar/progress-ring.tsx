@@ -5,12 +5,19 @@ interface ProgressRingProps {
   value: number;
   size?: number;
   className?: string;
+  /**
+   * What the ring is measuring. The percentage inside it is meaningless on
+   * its own to a screen reader, so the ring carries the whole sentence and
+   * the digits are hidden.
+   */
+  label: string;
 }
 
 export function ProgressRing({
   value,
   size = 38,
   className,
+  label,
 }: ProgressRingProps) {
   const stroke = 2.5;
   const radius = (size - stroke) / 2;
@@ -21,6 +28,8 @@ export function ProgressRing({
     <div
       className={cn("relative shrink-0", className)}
       style={{ width: size, height: size }}
+      role="img"
+      aria-label={label}
     >
       <svg width={size} height={size} className="-rotate-90" aria-hidden>
         <circle
@@ -45,7 +54,10 @@ export function ProgressRing({
           className="text-foreground transition-[stroke-dashoffset] duration-700 ease-out"
         />
       </svg>
-      <span className="absolute inset-0 grid place-items-center text-[0.5rem] font-semibold tabular-nums text-foreground">
+      <span
+        aria-hidden
+        className="absolute inset-0 grid place-items-center text-micro font-semibold tabular-nums text-foreground"
+      >
         {Math.round(clamped * 100)}%
       </span>
     </div>

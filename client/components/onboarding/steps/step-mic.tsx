@@ -4,7 +4,9 @@ import { Check, MicOff, TriangleAlert } from "lucide-react";
 
 import { MicMeter } from "@/components/onboarding/mic-meter";
 import { OnboardingShell } from "@/components/onboarding/onboarding-shell";
+import { Button } from "@/components/ui/button";
 import { useAudioLevel } from "@/hooks/use-audio-level";
+import { retryMic, type MicBlockReason } from "@/lib/mic-engine";
 
 import type { StepProps } from "./types";
 
@@ -21,8 +23,22 @@ import type { StepProps } from "./types";
  * tone or could not be reached by a normal speaking voice. It was the second,
  * and this screen was unpassable.
  */
+/**
+ * Short forms of the reasons in `MicNotice`. This screen has one line to work
+ * with and the learner has not started a session yet, so it names the problem
+ * and leaves the full instructions to the notice that appears in practice.
+ */
+const BLOCKED_SUMMARY: Record<MicBlockReason, string> = {
+  denied: "Microphone access was refused, so the coach won't hear you.",
+  "no-device": "No microphone found. Plug one in and this will pick it up.",
+  "in-use": "Another app is holding your microphone. Close it and try again.",
+  insecure: "Microphones need HTTPS. Open this page at its https:// address.",
+  timeout: "The permission prompt wasn't answered.",
+  unknown: "Your microphone couldn't be opened.",
+};
+
 export function StepMic({ index, count, onNext, onBack }: StepProps) {
-  const { levelRef, micBlocked, micSilent, micEverHeard } =
+  const { levelRef, micBlocked, micReason, micSilent, micEverHeard } =
     useAudioLevel("listening");
 
   return (
@@ -37,19 +53,28 @@ export function StepMic({ index, count, onNext, onBack }: StepProps) {
       // A learner with no microphone is let through: they can still read the
       // corrections, and trapping them here helps nobody.
       canAdvance={micEverHeard || micBlocked || micSilent}
+      requirement="Say something — your coach is still waiting to hear you."
       nextLabel={micEverHeard ? "Continue" : "Waiting to hear you"}
     >
-      <div className="surface-panel rounded-2xl px-6 py-5">
+      <div className="surface-panel rounded-2xl px-5 py-5 sm:px-6">
         <MicMeter levelRef={levelRef} />
 
-        <div className="mt-4 flex items-center justify-center gap-2 text-center text-[0.8125rem]">
+        <div
+          aria-live="polite"
+          className="mt-4 flex items-center justify-center gap-2 text-center text-ui"
+        >
           {micBlocked ? (
             <>
               <MicOff className="size-4 shrink-0 text-muted-foreground" strokeWidth={2} />
               <span className="text-muted-foreground">
-                No microphone access — you can continue, but the coach won&apos;t
-                hear you.
+                {BLOCKED_SUMMARY[micReason ?? "unknown"]} You can continue and
+                fix it later.
               </span>
+              {micReason !== "insecure" && (
+                <Button size="xs" variant="outline" onClick={retryMic}>
+                  Try again
+                </Button>
+              )}
             </>
           ) : micEverHeard ? (
             <>

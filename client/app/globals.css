@@ -46,6 +46,51 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* -------------------------------------------------------------------------
+     Type scale
+
+     Named by role rather than by size, and deliberately additive: Tailwind's
+     own text-xs..text-4xl stay exactly as they are, because the shadcn
+     primitives in components/ui are built on them and retuning those from
+     under the library is how a design system starts fighting itself.
+
+     Everything we write ourselves uses these. The two display sizes are fluid
+     so a headline never has to be re-specified per breakpoint.
+     ------------------------------------------------------------------------- */
+  --text-micro: 0.625rem;
+  --text-micro--line-height: 1.4;
+  --text-mini: 0.6875rem;
+  --text-mini--line-height: 1.45;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.5;
+  --text-ui: 0.8125rem;
+  --text-ui--line-height: 1.5;
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.6;
+  --text-lead: 1.0625rem;
+  --text-lead--line-height: 1.6;
+  --text-title: clamp(1.125rem, 0.95rem + 0.75vw, 1.375rem);
+  --text-title--line-height: 1.35;
+  --text-display-sm: clamp(1.375rem, 1.1rem + 1.2vw, 1.75rem);
+  --text-display-sm--line-height: 1.25;
+  --text-display: clamp(1.75rem, 1.2rem + 2.6vw, 2.5rem);
+  --text-display--line-height: 1.15;
+
+  /* -------------------------------------------------------------------------
+     Shadow scale
+
+     Three roles. Panels float on the ambient field, raised things sit on a
+     surface, overlays sit above everything. All three are tinted violet rather
+     than black so they read as depth in the coach's palette instead of grime.
+     ------------------------------------------------------------------------- */
+  --shadow-panel: 0 20px 60px -40px var(--shadow-tint-strong);
+  --shadow-raised: 0 1px 2px -1px var(--shadow-tint), 0 4px 12px -6px var(--shadow-tint);
+  --shadow-overlay: 0 8px 24px -12px var(--shadow-tint),
+    0 32px 64px -32px var(--shadow-tint-strong);
+  /* A chosen card lifts off the field; the live microphone wears a halo. */
+  --shadow-selected: 0 12px 32px -19px var(--selected-tint);
+  --shadow-mic-live: 0 0 0 6px var(--mic-live-tint);
 }
 
 :root {
@@ -55,8 +100,9 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
+  /* The one branded control. See the note above `.dark`. */
+  --primary: oklch(0.49 0.205 288);
+  --primary-foreground: oklch(0.99 0.008 288);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
@@ -66,7 +112,7 @@
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --ring: oklch(0.58 0.16 288);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -75,46 +121,56 @@
   --radius: 0.625rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.49 0.205 288);
+  --sidebar-primary-foreground: oklch(0.99 0.008 288);
   --sidebar-accent: oklch(0.97 0 0);
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
 }
 
+/* The neutrals carry a trace of the ambient field's hue (265) rather than
+   being pure grey, so text and panels sit in the same room as the washes
+   behind them. Chroma is low enough that nothing reads as tinted on its own.
+ *
+ * `--primary` is the exception, and deliberately does not flip. It used to be
+ * pure neutral, which made the primary button a black slab on the light theme
+ * and a white slab on the dark one — the only unbranded element on a screen
+ * whose entire identity is the violet orb, and the only control that changed
+ * identity when the theme did. It is now the same violet in both themes, held
+ * dark enough to carry white text at AA. */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --background: oklch(0.155 0.008 265);
+  --foreground: oklch(0.975 0.002 265);
+  --card: oklch(0.215 0.012 265);
+  --card-foreground: oklch(0.975 0.002 265);
+  --popover: oklch(0.215 0.012 265);
+  --popover-foreground: oklch(0.975 0.002 265);
+  --primary: oklch(0.53 0.205 288);
+  --primary-foreground: oklch(0.99 0.008 288);
+  --secondary: oklch(0.278 0.014 265);
+  --secondary-foreground: oklch(0.975 0.002 265);
+  --muted: oklch(0.278 0.014 265);
+  --muted-foreground: oklch(0.735 0.018 265);
+  --accent: oklch(0.298 0.018 275);
+  --accent-foreground: oklch(0.975 0.002 265);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --border: oklch(1 0 0 / 11%);
+  --input: oklch(1 0 0 / 16%);
+  --ring: oklch(0.62 0.06 285);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar: oklch(0.205 0.012 265);
+  --sidebar-foreground: oklch(0.975 0.002 265);
+  --sidebar-primary: oklch(0.53 0.205 288);
+  --sidebar-primary-foreground: oklch(0.99 0.008 288);
+  --sidebar-accent: oklch(0.278 0.014 265);
+  --sidebar-accent-foreground: oklch(0.975 0.002 265);
+  --sidebar-border: oklch(1 0 0 / 11%);
+  --sidebar-ring: oklch(0.62 0.06 285);
 }
 
 @layer base {
@@ -143,6 +199,10 @@
   --ambient-lilac: oklch(0.957 0.022 300);
   --ambient-sky: oklch(0.957 0.03 232);
   --ambient-mist: oklch(0.995 0.002 250);
+  /* The bloom under the stage that keeps the lower half from going grey. */
+  --ambient-glare: oklch(1 0 0 / 92%);
+  --ambient-glare-opacity: 0.9;
+  --ambient-glare-speaking-opacity: 0.62;
 
   /* Orb, one gradient pair per session state. */
   --orb-idle-from: oklch(0.76 0.115 305);
@@ -153,6 +213,10 @@
   --orb-speaking-to: oklch(0.85 0.09 228);
   --orb-thinking-from: oklch(0.78 0.09 268);
   --orb-thinking-to: oklch(0.88 0.06 240);
+  /* The sphere's own modelling: a shaded underside and a lit crown. */
+  --orb-shade: oklch(0.45 0.12 300 / 22%);
+  --orb-sheen: oklch(1 0 0 / 55%);
+  --orb-highlight-colour: oklch(1 0 0 / 70%);
 
   /* Feedback. Red marks what was said, green what to say instead. */
   --coach-error: oklch(0.62 0.223 27);
@@ -166,6 +230,93 @@
   --panel: oklch(1 0 0 / 76%);
   --panel-solid: oklch(1 0 0 / 92%);
   --panel-border: oklch(0.923 0.003 265 / 70%);
+
+  /* Depth, tinted violet so it reads as the coach's palette, not as grime. */
+  --shadow-tint: oklch(0.4 0.06 280 / 18%);
+  --shadow-tint-strong: oklch(0.4 0.06 280 / 45%);
+
+  /* The dark disc the brand mark sits on. */
+  --brand-mark: oklch(0.21 0.012 265);
+  --brand-mark-foreground: oklch(0.985 0 0);
+
+  /* Session controls: the two solid discs under the orb. They are the only
+     high-contrast objects on the ambient field, which is the point — they are
+     also the only two things on the screen the learner can press mid-turn. */
+  --control: oklch(0.21 0.012 265);
+  --control-foreground: oklch(0.985 0 0);
+  --control-active: oklch(0.17 0.015 280);
+  --control-muted: oklch(0.36 0.012 265);
+  --control-muted-foreground: oklch(0.985 0 0);
+  /* The halo and the ping while the microphone is live, keyed off the
+     speaking gradient so "the mic is hot" and "the coach is talking" are
+     visibly the same colour event. */
+  --control-ping: oklch(0.64 0.263 349 / 18%);
+  --mic-live-tint: oklch(0.64 0.263 349 / 12%);
+  --selected-tint: oklch(0.3 0.05 280 / 52%);
+}
+
+/* ---------------------------------------------------------------------------
+   Dark
+
+   Not an inversion. The light theme is a lit room — white paper, sun through a
+   window — and inverting it gives you grey paper in the same room. Dark is a
+   different room: the ambient washes become the only light source, so they
+   gain chroma as they lose lightness, and the glare that lifted the bottom of
+   the light screen becomes a deep bloom instead of a white one.
+
+   Every token defined above is re-stated here. A coach token with no dark
+   value is the bug that leaves a frosted white panel on a black page.
+   --------------------------------------------------------------------------- */
+.dark {
+  --ambient-blush: oklch(0.36 0.078 350);
+  --ambient-lilac: oklch(0.34 0.072 300);
+  --ambient-sky: oklch(0.35 0.075 232);
+  --ambient-mist: oklch(0.155 0.008 265);
+  --ambient-glare: oklch(0.42 0.09 285 / 55%);
+  --ambient-glare-opacity: 0.5;
+  --ambient-glare-speaking-opacity: 0.72;
+
+  /* The orb is the light source, so it stays bright — a dim orb on a dark
+     page loses the one thing the whole screen is built around. */
+  --orb-idle-from: oklch(0.7 0.145 305);
+  --orb-idle-to: oklch(0.76 0.135 222);
+  --orb-listening-from: oklch(0.68 0.17 288);
+  --orb-listening-to: oklch(0.78 0.14 215);
+  --orb-speaking-from: oklch(0.62 0.268 349);
+  --orb-speaking-to: oklch(0.79 0.115 228);
+  --orb-thinking-from: oklch(0.72 0.115 268);
+  --orb-thinking-to: oklch(0.82 0.08 240);
+  --orb-shade: oklch(0.16 0.05 300 / 45%);
+  --orb-sheen: oklch(1 0 0 / 32%);
+  --orb-highlight-colour: oklch(1 0 0 / 45%);
+
+  /* Lifted for contrast: the light-theme red and green fail against a dark
+     panel, and these two carry the entire correction moment. */
+  --coach-error: oklch(0.72 0.19 25);
+  --coach-correct: oklch(0.75 0.16 155);
+  --coach-streak: oklch(0.79 0.16 55);
+
+  --muted-cool: oklch(0.62 0.03 236);
+
+  --panel: oklch(0.26 0.014 275 / 62%);
+  --panel-solid: oklch(0.24 0.014 275 / 88%);
+  --panel-border: oklch(1 0 0 / 12%);
+
+  --shadow-tint: oklch(0 0 0 / 45%);
+  --shadow-tint-strong: oklch(0 0 0 / 70%);
+
+  --brand-mark: oklch(0.96 0.004 265);
+  --brand-mark-foreground: oklch(0.19 0.012 265);
+
+  /* The discs invert: a near-black button on a near-black page is a hole. */
+  --control: oklch(0.93 0.006 265);
+  --control-foreground: oklch(0.2 0.012 265);
+  --control-active: oklch(1 0 0);
+  --control-muted: oklch(0.36 0.018 270);
+  --control-muted-foreground: oklch(0.97 0.002 265);
+  --control-ping: oklch(0.7 0.24 349 / 26%);
+  --mic-live-tint: oklch(0.7 0.24 349 / 20%);
+  --selected-tint: oklch(0 0 0 / 65%);
 }
 
 @theme inline {
@@ -180,6 +331,14 @@
   --color-panel: var(--panel);
   --color-panel-solid: var(--panel-solid);
   --color-panel-border: var(--panel-border);
+  --color-brand-mark: var(--brand-mark);
+  --color-brand-mark-foreground: var(--brand-mark-foreground);
+  --color-control: var(--control);
+  --color-control-foreground: var(--control-foreground);
+  --color-control-active: var(--control-active);
+  --color-control-muted: var(--control-muted);
+  --color-control-muted-foreground: var(--control-muted-foreground);
+  --color-control-ping: var(--control-ping);
 }
 
 @layer components {
@@ -193,7 +352,7 @@
 
   /* The small letterspaced uppercase labels: LESSON TOPIC, YOU SAID, WHY. */
   .label-eyebrow {
-    font-size: 0.625rem;
+    font-size: var(--text-micro);
     font-weight: 600;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -293,10 +452,10 @@
     height: 60%;
     background: radial-gradient(
       circle at 50% 50%,
-      oklch(1 0 0 / 92%),
+      var(--ambient-glare),
       transparent 70%
     );
-    opacity: 0.9;
+    opacity: var(--ambient-glare-opacity);
   }
 
   /* The coach speaking warms the whole room. */
@@ -305,7 +464,7 @@
   }
 
   .ambient[data-state="speaking"] .ambient-glare {
-    opacity: 0.62;
+    opacity: var(--ambient-glare-speaking-opacity);
   }
 
   .ambient[data-state="idle"] .ambient-blush {
@@ -372,6 +531,7 @@
     will-change: transform, opacity;
   }
 
+  /* Everything that has to stay together as the orb floats. */
   .orb-body {
     position: relative;
     display: grid;
@@ -399,8 +559,8 @@
       ),
       linear-gradient(142deg, var(--orb-from) 8%, var(--orb-to) 92%);
     box-shadow:
-      inset 0 -12px 28px -12px oklch(0.45 0.12 300 / 22%),
-      inset 0 10px 24px -10px oklch(1 0 0 / 55%);
+      inset 0 -12px 28px -12px var(--orb-shade),
+      inset 0 10px 24px -10px var(--orb-sheen);
     /* Feathered edge, matching the soft render in the design. */
     filter: blur(0.5px) saturate(calc(1 + var(--level) * 0.35));
     transform: scale(calc(1 + var(--level) * 0.13));
@@ -420,7 +580,7 @@
     border-radius: 9999px;
     background: radial-gradient(
       circle at 50% 50%,
-      oklch(1 0 0 / 70%),
+      var(--orb-highlight-colour),
       transparent 70%
     );
     filter: blur(8px);
@@ -428,6 +588,21 @@
     pointer-events: none;
   }
 
+  /* Rings leaving the sphere.
+   *
+   * They live inside `.orb-body` rather than beside it, and that is the whole
+   * fix: `.orb-body` drifts ten pixels up and down and the sphere scales with
+   * the voice, so a ripple anchored to the outer `.orb` stayed put while the
+   * thing it was supposed to be leaving moved away from it. The rings read as
+   * off-centre because they were — by up to ten pixels, twice per drift cycle.
+   *
+   * `inset: 0` inside the drifting box means they now start exactly on the
+   * sphere's own edge and expand from its own centre, wherever that is.
+   *
+   * The delay is an inline custom property rather than `:nth-child`, because
+   * `:nth-child` counted every sibling and quietly went wrong the moment the
+   * glow moved. Three rings with delays 0, 0.85 and 1.7 over a 2.6s period
+   * put one crossing the sphere's edge at all times. */
   .orb-ripple {
     position: absolute;
     inset: 0;
@@ -435,15 +610,8 @@
     border: 1px solid var(--orb-from);
     opacity: 0;
     animation: orb-ripple 2.6s ease-out infinite;
+    animation-delay: var(--ripple-delay, 0s);
     pointer-events: none;
-  }
-
-  .orb-ripple:nth-child(2) {
-    animation-delay: 0.85s;
-  }
-
-  .orb-ripple:nth-child(3) {
-    animation-delay: 1.7s;
   }
 }
 

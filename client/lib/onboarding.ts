@@ -49,11 +49,11 @@ export interface LifePath {
   fieldHint: string;
   fieldSuggestions: string[];
   /**
-   * Day 1's mission title — the path's context substitution applied to the
-   * first domain. `A2-D01` is one universal domain; this is the room the
-   * learner practises it in.
+   * Day 1's Theme — the path's context substitution applied to the first
+   * domain. `A2-D01` is one universal domain; this is the room the learner
+   * practises it in.
    */
-  firstMission: string;
+  firstTheme: string;
   /** Shown as the sensible starting point when nothing else fits. */
   isDefault?: boolean;
   /**
@@ -75,7 +75,7 @@ export const lifePaths: LifePath[] = [
     fieldQuestion: "What do you talk about most?",
     fieldHint: "Your coach will build conversations around it.",
     fieldSuggestions: ["Work", "Family and friends", "Travel", "News", "Football"],
-    firstMission: "Introducing yourself to someone new",
+    firstTheme: "Introducing yourself to someone new",
   },
   {
     id: "university_success",
@@ -93,7 +93,7 @@ export const lifePaths: LifePath[] = [
       "Civil Engineering",
       "Law",
     ],
-    firstMission: "Your first week on campus",
+    firstTheme: "Your first week on campus",
   },
   {
     id: "hospitality",
@@ -111,7 +111,7 @@ export const lifePaths: LifePath[] = [
       "Tour Guide",
       "Hotel Manager",
     ],
-    firstMission: "Welcoming a guest at the front desk",
+    firstTheme: "Welcoming a guest at the front desk",
   },
   {
     id: "custom",
@@ -125,7 +125,7 @@ export const lifePaths: LifePath[] = [
     fieldHint:
       "A sentence is enough. Your coach builds the scenes from what you write.",
     fieldSuggestions: [],
-    firstMission: "Talking about what you are working towards",
+    firstTheme: "Talking about what you are working towards",
   },
   {
     id: "job_interview",
@@ -137,7 +137,7 @@ export const lifePaths: LifePath[] = [
     fieldQuestion: "What role are you applying for?",
     fieldHint: "Your coach will rehearse that interview with you.",
     fieldSuggestions: [],
-    firstMission: "Answering \u201ctell me about yourself\u201d",
+    firstTheme: "Answering \u201ctell me about yourself\u201d",
   },
   {
     id: "study_abroad",
@@ -149,7 +149,7 @@ export const lifePaths: LifePath[] = [
     fieldQuestion: "Where are you heading?",
     fieldHint: "Your coach will prepare you for that journey.",
     fieldSuggestions: [],
-    firstMission: "Explaining your plans at a visa interview",
+    firstTheme: "Explaining your plans at a visa interview",
   },
   {
     id: "software_engineering",
@@ -161,7 +161,7 @@ export const lifePaths: LifePath[] = [
     fieldQuestion: "What do you work on?",
     fieldHint: "Your coach will use your stack in every scenario.",
     fieldSuggestions: [],
-    firstMission: "Giving your update in a stand-up",
+    firstTheme: "Giving your update in a stand-up",
   },
   {
     id: "healthcare",
@@ -173,11 +173,19 @@ export const lifePaths: LifePath[] = [
     fieldQuestion: "What is your speciality?",
     fieldHint: "Your coach will use it to build realistic cases.",
     fieldSuggestions: [],
-    firstMission: "Taking a patient's history",
+    firstTheme: "Taking a patient's history",
   },
 ];
 
-export function lifePathById(id: LifePathId | null): LifePath | null {
+/**
+ * Takes a plain string, not a `LifePathId`.
+ *
+ * The id arrives from the server and from device storage, neither of which the
+ * type system reaches. Narrowing at the call sites would mean a cast at each
+ * one; doing the lookup honestly here returns null for anything unrecognised,
+ * which is what every caller already handles.
+ */
+export function lifePathById(id: string | null): LifePath | null {
   return lifePaths.find((path) => path.id === id) ?? null;
 }
 

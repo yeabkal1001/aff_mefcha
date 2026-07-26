@@ -1,7 +1,6 @@
 "use client";
 
-import { ChoiceButton } from "@/components/onboarding/choice-button";
-import { OnboardingShell } from "@/components/onboarding/onboarding-shell";
+import { ChoiceStep } from "@/components/onboarding/choice-step";
 import { updateDraft, useOnboardingDraft } from "@/hooks/use-onboarding-draft";
 import { ageBands } from "@/lib/onboarding";
 
@@ -16,27 +15,23 @@ export function StepAge({ index, count, onNext, onBack }: StepProps) {
   const { ageBand } = useOnboardingDraft();
 
   return (
-    <OnboardingShell
+    <ChoiceStep
       stepKey="age"
       stepIndex={index}
       stepCount={count}
       question="How old are you?"
       hint="It decides the situations your coach puts you in — a classroom or a meeting room."
-      onBack={onBack}
+      groupLabel="Age range"
+      requirement="Choose an age range to continue."
+      options={ageBands.map((band) => ({
+        value: band.id,
+        label: band.label,
+        detail: band.detail,
+      }))}
+      value={ageBand}
+      onChange={(value) => updateDraft({ ageBand: value })}
       onNext={onNext}
-      canAdvance={ageBand !== null}
-    >
-      <div role="radiogroup" aria-label="Age range" className="space-y-2">
-        {ageBands.map((band) => (
-          <ChoiceButton
-            key={band.id}
-            selected={ageBand === band.id}
-            onSelect={() => updateDraft({ ageBand: band.id })}
-            label={band.label}
-            detail={band.detail}
-          />
-        ))}
-      </div>
-    </OnboardingShell>
+      onBack={onBack}
+    />
   );
 }

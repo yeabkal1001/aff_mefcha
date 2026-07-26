@@ -35,7 +35,7 @@ export function LiveTranscript({ text }: { text: string }) {
         Listening
       </p>
 
-      <p className="mt-4 max-w-[34rem] text-center text-[1.375rem] font-medium leading-snug tracking-tight text-foreground/75">
+      <p className="mt-4 max-w-[34rem] text-center text-title font-medium leading-snug tracking-tight text-foreground/75">
         <AnimatePresence initial={false}>
           {words.map((word, i) => (
             <motion.span

@@ -1,7 +1,6 @@
 "use client";
 
 import { Play, RotateCcw } from "lucide-react";
-import { motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
@@ -35,35 +34,52 @@ export function AudioStimulusView({
 }) {
   const [playing, setPlaying] = useState(false);
   const [played, setPlayed] = useState(0);
-  const [elapsed, setElapsed] = useState(0);
-  const frame = useRef<number>(undefined);
+  /** Whole seconds left. The only part of playback React needs to re-render. */
+  const [secondsLeft, setSecondsLeft] = useState(Math.ceil(spec.seconds));
+  const waveRef = useRef<HTMLDivElement>(null);
 
   const replaysLeft = Math.max(0, spec.replaysAllowed - Math.max(0, played - 1));
   const exhausted = played > 0 && replaysLeft === 0;
 
+  // Playback moves two things: a fill across forty bars, and a countdown. The
+  // fill is written straight to a CSS custom property so it runs on the
+  // compositor — driving it through state re-rendered every one of those bars
+  // sixty times a second, for an animation React was adding nothing to.
   useEffect(() => {
-    if (!playing) return;
+    const node = waveRef.current;
+    if (!playing || !node) return;
 
     const started = performance.now();
-    const tick = () => {
-      const seconds = (performance.now() - started) / 1000;
+    let raf = 0;
+
+    const paint = () => {
+      const seconds = Math.min(spec.seconds, (performance.now() - started) / 1000);
+      node.style.setProperty(
+        "--played",
+        String(spec.seconds > 0 ? seconds / spec.seconds : 0),
+      );
+      setSecondsLeft(Math.ceil(spec.seconds - seconds));
+
       if (seconds >= spec.seconds) {
-        setElapsed(spec.seconds);
         setPlaying(false);
         return;
       }
-      setElapsed(seconds);
-      frame.current = requestAnimationFrame(tick);
+      raf = requestAnimationFrame(paint);
     };
-    frame.current = requestAnimationFrame(tick);
 
-    return () => {
-      if (frame.current) cancelAnimationFrame(frame.current);
-    };
+    raf = requestAnimationFrame(paint);
+    return () => cancelAnimationFrame(raf);
   }, [playing, spec.seconds]);
 
-  const progress = spec.seconds > 0 ? elapsed / spec.seconds : 0;
   const shape = bars(compact ? 22 : 40, 3);
+
+  const restart = () => {
+    if (exhausted && !playing) return;
+    waveRef.current?.style.setProperty("--played", "0");
+    setSecondsLeft(Math.ceil(spec.seconds));
+    setPlayed((n) => n + 1);
+    setPlaying(true);
+  };
 
   return (
     <div className="flex w-full flex-col items-center">
@@ -73,12 +89,7 @@ export function AudioStimulusView({
         <div className="flex items-center gap-3.5">
           <button
             type="button"
-            onClick={() => {
-              if (exhausted && !playing) return;
-              setElapsed(0);
-              setPlayed((n) => n + 1);
-              setPlaying(true);
-            }}
+            onClick={restart}
             disabled={exhausted && !playing}
             aria-label={played === 0 ? "Play audio" : "Play again"}
             className={cn(
@@ -94,40 +105,35 @@ export function AudioStimulusView({
             )}
           </button>
 
-          <div className="flex h-9 flex-1 items-center justify-between" aria-hidden>
-            {shape.map((height, i) => {
-              const reached = i / shape.length <= progress;
-              return (
-                <motion.span
-                  key={i}
-                  className={cn(
-                    "w-[3px] rounded-full",
-                    reached ? "bg-foreground/70" : "bg-foreground/15",
-                  )}
-                  animate={{
-                    height: `${height * (playing && reached ? 100 : 72)}%`,
-                  }}
-                  transition={{ duration: 0.18 }}
-                />
-              );
-            })}
+          {/* Two identical waveforms stacked: a dim one, and a bright one
+              clipped to how far playback has got. The clip is the only thing
+              that moves, and it moves on the compositor. */}
+          <div
+            ref={waveRef}
+            className="relative h-9 flex-1 [--played:0]"
+            aria-hidden
+          >
+            <Waveform shape={shape} className="text-foreground/15" />
+            <div className="absolute inset-0 [clip-path:inset(0_calc((1-var(--played))*100%)_0_0)]">
+              <Waveform shape={shape} className="text-foreground/70" />
+            </div>
           </div>
 
-          <span className="shrink-0 text-[0.75rem] tabular-nums text-muted-foreground">
-            {Math.ceil(spec.seconds - elapsed)}s
+          <span className="shrink-0 text-caption tabular-nums text-muted-foreground">
+            {secondsLeft}s
           </span>
         </div>
 
         {/* Shadowing shows the words; summarising must not. */}
         {spec.transcript && !compact && (
-          <p className="mt-3 border-t border-border/60 pt-3 text-center text-[0.9375rem] font-medium leading-snug text-foreground/85">
+          <p className="mt-3 border-t border-border/60 pt-3 text-center text-body font-medium leading-snug text-foreground/85">
             {spec.transcript}
           </p>
         )}
       </StimulusPanel>
 
       {!compact && spec.replaysAllowed > 0 && (
-        <p className="mt-2 text-[0.75rem] text-muted-foreground">
+        <p className="mt-2 text-caption text-muted-foreground">
           {played === 0
             ? `You can replay this ${spec.replaysAllowed} ${spec.replaysAllowed === 1 ? "time" : "times"}.`
             : exhausted
@@ -135,6 +141,31 @@ export function AudioStimulusView({
               : `${replaysLeft} ${replaysLeft === 1 ? "replay" : "replays"} left.`}
         </p>
       )}
+    </div>
+  );
+}
+
+function Waveform({
+  shape,
+  className,
+}: {
+  shape: number[];
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex h-full w-full items-center justify-between",
+        className,
+      )}
+    >
+      {shape.map((height, i) => (
+        <span
+          key={i}
+          className="w-[3px] rounded-full bg-current"
+          style={{ height: `${height * 100}%` }}
+        />
+      ))}
     </div>
   );
 }
@@ -160,7 +191,7 @@ export function AudioQuestionStimulusView({
         <p
           className={cn(
             "text-balance text-center font-medium leading-snug tracking-tight",
-            compact ? "text-[0.9375rem]" : "text-[1.125rem]",
+            compact ? "text-body" : "text-lead",
           )}
         >
           {spec.question}

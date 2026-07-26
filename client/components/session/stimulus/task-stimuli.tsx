@@ -1,8 +1,9 @@
 "use client";
 
 import { Target, Timer } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
+import { useRovingRadioGroup } from "@/hooks/use-roving-radio-group";
 import { cn } from "@/lib/utils";
 
 import { StimulusLabel, StimulusPanel } from "./stimulus-panel";
@@ -26,11 +27,17 @@ export function ChoiceStimulusView({
 }) {
   const [chosen, setChosen] = useState<string | null>(null);
   const choice = spec.options.find((o) => o.id === chosen);
+  const ids = useMemo(() => spec.options.map((o) => o.id), [spec.options]);
+  const { groupProps, getRadioProps } = useRovingRadioGroup({
+    values: ids,
+    value: chosen,
+    onChange: setChosen,
+  });
 
   if (compact) {
     return (
       <StimulusPanel className="px-4 py-3">
-        <p className="text-center text-[0.875rem] font-medium leading-snug">{spec.situation}</p>
+        <p className="text-center text-body font-medium leading-snug">{spec.situation}</p>
       </StimulusPanel>
     );
   }
@@ -40,23 +47,22 @@ export function ChoiceStimulusView({
       <StimulusLabel>The situation</StimulusLabel>
 
       <StimulusPanel className="w-full px-5 py-4">
-        <p className="text-balance text-center text-[1.0625rem] font-medium leading-snug tracking-tight">
+        <p className="text-balance text-center text-lead font-medium leading-snug tracking-tight">
           {spec.situation}
         </p>
       </StimulusPanel>
 
-      <div role="radiogroup" aria-label="Options" className="mt-3 grid w-full gap-2">
+      <div {...groupProps} aria-label="Options" className="mt-3 grid w-full gap-2">
         {spec.options.map((option) => {
           const selected = option.id === chosen;
           return (
             <button
               key={option.id}
               type="button"
-              role="radio"
-              aria-checked={selected}
-              onClick={() => setChosen(option.id)}
+              {...getRadioProps(option.id)}
               className={cn(
                 "surface-panel flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-left transition",
+                "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                 selected
                   ? "ring-2 ring-foreground/80"
                   : "hover:bg-foreground/[0.025]",
@@ -64,7 +70,7 @@ export function ChoiceStimulusView({
             >
               <span
                 className={cn(
-                  "grid size-5 shrink-0 place-items-center rounded-full border text-[0.625rem] font-semibold",
+                  "grid size-5 shrink-0 place-items-center rounded-full border text-micro font-semibold",
                   selected
                     ? "border-transparent bg-foreground text-background"
                     : "border-border text-muted-foreground",
@@ -73,11 +79,11 @@ export function ChoiceStimulusView({
                 {option.id.toUpperCase()}
               </span>
               <span className="min-w-0">
-                <span className="block text-[0.9375rem] font-medium leading-tight">
+                <span className="block text-body font-medium leading-tight">
                   {option.label}
                 </span>
                 {option.detail && (
-                  <span className="mt-0.5 block text-[0.75rem] leading-snug text-muted-foreground">
+                  <span className="mt-0.5 block text-caption leading-snug text-muted-foreground">
                     {option.detail}
                   </span>
                 )}
@@ -87,7 +93,7 @@ export function ChoiceStimulusView({
         })}
       </div>
 
-      <p className="mt-3 text-center text-[0.8125rem] text-muted-foreground">
+      <p className="mt-3 text-center text-ui text-muted-foreground">
         {choice
           ? `Now tell me why you chose ${choice.label.toLowerCase()}.`
           : "Pick one, then tell me why."}
@@ -114,8 +120,8 @@ export function ScenarioStimulusView({
   if (compact) {
     return (
       <StimulusPanel className="px-4 py-2.5">
-        <p className="text-center text-[0.8125rem] font-medium leading-snug">{spec.setting}</p>
-        <p className="mt-0.5 text-center text-[0.75rem] text-muted-foreground">
+        <p className="text-center text-ui font-medium leading-snug">{spec.setting}</p>
+        <p className="mt-0.5 text-center text-caption text-muted-foreground">
           {spec.objective}
         </p>
       </StimulusPanel>
@@ -127,7 +133,7 @@ export function ScenarioStimulusView({
       <StimulusLabel>The situation</StimulusLabel>
 
       <StimulusPanel className="w-full px-5 py-4">
-        <p className="text-balance text-center text-[1.0625rem] font-medium leading-snug tracking-tight">
+        <p className="text-balance text-center text-lead font-medium leading-snug tracking-tight">
           {spec.setting}
         </p>
 
@@ -138,7 +144,7 @@ export function ScenarioStimulusView({
 
         <div className="mt-2.5 flex items-start gap-2 rounded-xl bg-coach-correct/[0.08] px-3 py-2.5">
           <Target className="mt-[3px] size-3.5 shrink-0 text-coach-correct" strokeWidth={2.2} />
-          <p className="text-[0.8125rem] leading-snug text-foreground/85">{spec.objective}</p>
+          <p className="text-ui leading-snug text-foreground/85">{spec.objective}</p>
         </div>
       </StimulusPanel>
     </div>
@@ -149,7 +155,7 @@ function Role({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl bg-foreground/[0.035] px-3 py-2">
       <p className="label-eyebrow">{label}</p>
-      <p className="mt-0.5 text-[0.875rem] font-medium leading-snug">{value}</p>
+      <p className="mt-0.5 text-body font-medium leading-snug">{value}</p>
     </div>
   );
 }
@@ -171,7 +177,7 @@ export function TopicStimulusView({
   if (compact) {
     return (
       <StimulusPanel className="px-4 py-2.5">
-        <p className="text-center text-[0.875rem] font-medium leading-snug">{spec.topic}</p>
+        <p className="text-center text-body font-medium leading-snug">{spec.topic}</p>
       </StimulusPanel>
     );
   }
@@ -181,23 +187,23 @@ export function TopicStimulusView({
       <StimulusLabel>Your topic</StimulusLabel>
 
       <StimulusPanel className="w-full px-5 py-4">
-        <p className="text-balance text-center text-[1.125rem] font-medium leading-snug tracking-tight">
+        <p className="text-balance text-center text-lead font-medium leading-snug tracking-tight">
           {spec.topic}
         </p>
 
         <ol className="mt-3.5 space-y-1.5">
           {spec.beats.map((beat, i) => (
             <li key={beat} className="flex items-start gap-2.5">
-              <span className="mt-[1px] grid size-4 shrink-0 place-items-center rounded-full bg-foreground/[0.07] text-[0.5625rem] font-semibold text-muted-foreground">
+              <span className="mt-[1px] grid size-4 shrink-0 place-items-center rounded-full bg-foreground/[0.07] text-micro font-semibold text-muted-foreground">
                 {i + 1}
               </span>
-              <span className="text-[0.8125rem] leading-snug text-foreground/80">{beat}</span>
+              <span className="text-ui leading-snug text-foreground/80">{beat}</span>
             </li>
           ))}
         </ol>
       </StimulusPanel>
 
-      <p className="mt-2.5 flex items-center gap-1.5 text-[0.8125rem] text-muted-foreground">
+      <p className="mt-2.5 flex items-center gap-1.5 text-ui text-muted-foreground">
         <Timer className="size-3.5" strokeWidth={2} />
         {spec.prepSeconds} seconds to think before you start.
       </p>

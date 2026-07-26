@@ -3,14 +3,14 @@
 import { Mic, SkipForward, X } from "lucide-react";
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import type { SessionState } from "@/lib/mock-data";
+import type { SessionPhase } from "@/lib/session/phase";
 import { cn } from "@/lib/utils";
 
 interface SessionControlsProps {
-  state: SessionState;
+  state: SessionPhase;
   onToggleListening: () => void;
   onEnd: () => void;
-  /** Absent on the last activity of the mission. */
+  /** Absent on the last activity of the Day Plan. */
   onSkip?: () => void;
 }
 
@@ -32,17 +32,17 @@ export function SessionControls({
             aria-pressed={listening}
             aria-label={listening ? "Stop speaking" : "Start speaking"}
             className={cn(
-              "relative grid size-[3.25rem] place-items-center rounded-full bg-[oklch(0.21_0.012_265)] text-white",
+              "relative grid size-[3.25rem] place-items-center rounded-full bg-control text-control-foreground",
               "transition-[transform,box-shadow,background-color] duration-300 ease-out",
               "hover:scale-105 active:scale-95",
               "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring",
               listening &&
-                "bg-[oklch(0.17_0.015_280)] shadow-[0_0_0_6px_oklch(0.64_0.263_349/12%)]",
+                "bg-control-active shadow-mic-live",
             )}
           >
             {/* A halo that breathes only while the mic is open. */}
             {listening && (
-              <span className="absolute inset-0 animate-ping rounded-full bg-[oklch(0.64_0.263_349/18%)] [animation-duration:2.2s]" />
+              <span className="absolute inset-0 animate-ping rounded-full bg-control-ping [animation-duration:2.2s]" />
             )}
             <Mic className="relative size-[1.15rem]" strokeWidth={2} />
           </button>
@@ -52,7 +52,7 @@ export function SessionControls({
         </TooltipContent>
       </Tooltip>
 
-      {/* A mission is several activities, so there has to be a way past one
+      {/* A Day Plan is several activities, so there has to be a way past one
           that is not working — otherwise the only exit is ending the session. */}
       {onSkip && (
         <Tooltip>
@@ -62,7 +62,7 @@ export function SessionControls({
               onClick={onSkip}
               aria-label="Next activity"
               className={cn(
-                "grid size-[3.25rem] place-items-center rounded-full bg-[oklch(0.36_0.012_265)] text-white",
+                "grid size-[3.25rem] place-items-center rounded-full bg-control-muted text-control-muted-foreground",
                 "transition-transform duration-300 ease-out hover:scale-105 active:scale-95",
                 "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring",
               )}
@@ -81,7 +81,7 @@ export function SessionControls({
             onClick={onEnd}
             aria-label="End session"
             className={cn(
-              "grid size-[3.25rem] place-items-center rounded-full bg-[oklch(0.36_0.012_265)] text-white",
+              "grid size-[3.25rem] place-items-center rounded-full bg-control-muted text-control-muted-foreground",
               "transition-transform duration-300 ease-out hover:scale-105 active:scale-95",
               "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring",
             )}

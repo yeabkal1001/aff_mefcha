@@ -22,7 +22,7 @@ export function CoachGreeting({ text }: { text: string }) {
         direction="top"
         delay={70}
         stepDuration={0.3}
-        className="justify-center text-center text-[1.6rem] font-semibold leading-tight tracking-tight text-foreground/45"
+        className="justify-center text-center text-display-sm font-semibold leading-tight tracking-tight text-foreground/45"
       />
     </motion.div>
   );

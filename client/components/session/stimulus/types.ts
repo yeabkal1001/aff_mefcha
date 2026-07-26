@@ -1,4 +1,4 @@
-import type { SceneId } from "./scenes";
+import type { SceneId } from "./scene-ids";
 
 /**
  * The stimulus a session actually carries.

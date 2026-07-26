@@ -77,6 +77,8 @@ Full script at the end of [`persona.md`](./persona.md).
 
 ## Out of scope, deliberately
 
-Real authentication and payments. The sign-up *screen* exists because where it sits in the flow is a product argument worth demonstrating, but it collects an email and does nothing with it — sessions run against a draft profile held on the device. A1 content. Mobile layout. The 29 domains and 15 templates outside the demo slice. Realtime free-talk mode unless there is time left over.
+Real authentication and payments. The sign-up *screen* exists because where it sits in the flow is a product argument worth demonstrating, but it collects an email and does nothing with it — sessions run against a draft profile held on the device. A1 content. The 29 domains and 15 templates outside the demo slice. Realtime free-talk mode unless there is time left over.
+
+Mobile was on this list and has come off it. Every screen now works down to 360px: the sidebar becomes a drawer below `md`, stimulus widths are preferences capped at the column, and the type scale is fluid. The argument for cutting it was that the demo runs on a laptop; the argument against is that the learners in [`persona.md`](./persona.md) own phones and not laptops, and a coach they cannot open on the device they carry is a different product. Mobile is supported, not merely tolerated. What is still out of scope is a native app.
 
 The classification of everything else as load-bearing, prop or cut lives in the `demo-fidelity` skill.

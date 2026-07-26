@@ -13,9 +13,9 @@ export interface ActivityStep {
 }
 
 /**
- * Where the learner is inside today's mission.
+ * Where the learner is inside Today's Mission.
  *
- * A Day Plan is four to six activities, and without this the mission reads as
+ * A Day Plan is four to six activities, and without this the day reads as
  * one conversation that will not end — which is exactly the complaint that
  * open-ended chat practice attracts. The rail is the smallest thing that
  * answers "how much longer".
@@ -67,7 +67,7 @@ export function ActivityRail({
                 <motion.span
                   initial={{ opacity: 0, width: 0 }}
                   animate={{ opacity: 1, width: "auto" }}
-                  className="whitespace-nowrap text-[0.6875rem] font-medium text-foreground/70"
+                  className="whitespace-nowrap text-mini font-medium text-foreground/70"
                 >
                   {step.label}
                 </motion.span>

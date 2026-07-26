@@ -1,7 +1,6 @@
 "use client";
 
-import { ChoiceButton } from "@/components/onboarding/choice-button";
-import { OnboardingShell } from "@/components/onboarding/onboarding-shell";
+import { ChoiceStep } from "@/components/onboarding/choice-step";
 import { updateDraft, useOnboardingDraft } from "@/hooks/use-onboarding-draft";
 import { nativeLanguageById, type FeedbackLanguage } from "@/lib/onboarding";
 
@@ -20,43 +19,33 @@ export function StepFeedback({ index, count, onNext, onBack }: StepProps) {
   // There is no "your language only" option on purpose: a correction the
   // learner never hears in English gives them nothing to repeat, and the retry
   // is the step the whole immediate-feedback loop rests on.
-  const options: { id: FeedbackLanguage; label: string; detail: string }[] = [
+  const options: { value: FeedbackLanguage; label: string; detail: string }[] = [
     {
-      id: "both",
+      value: "both",
       label: `English, explained in ${l1Name}`,
       detail: "You hear the fix in English and why it's wrong in your own words.",
     },
     {
-      id: "english",
+      value: "english",
       label: "English only",
       detail: "Full immersion. Harder at first, faster later.",
     },
   ];
 
-  const visible = hasL1 ? options : options.filter((o) => o.id === "english");
-
   return (
-    <OnboardingShell
+    <ChoiceStep
       stepKey="feedback"
       stepIndex={index}
       stepCount={count}
       question="When I correct you, which language should I use?"
       hint="Understanding why something was wrong matters more than hearing it in English."
-      onBack={onBack}
+      groupLabel="Feedback language"
+      requirement="Choose a feedback language to continue."
+      options={hasL1 ? options : options.filter((o) => o.value === "english")}
+      value={feedbackLanguage}
+      onChange={(value) => updateDraft({ feedbackLanguage: value })}
       onNext={onNext}
-      canAdvance={feedbackLanguage !== null}
-    >
-      <div role="radiogroup" aria-label="Feedback language" className="space-y-2">
-        {visible.map((option) => (
-          <ChoiceButton
-            key={option.id}
-            selected={feedbackLanguage === option.id}
-            onSelect={() => updateDraft({ feedbackLanguage: option.id })}
-            label={option.label}
-            detail={option.detail}
-          />
-        ))}
-      </div>
-    </OnboardingShell>
+      onBack={onBack}
+    />
   );
 }

@@ -9,15 +9,23 @@ An AI speaking coach for Ethiopian students and professionals. Voice conversatio
 Needs Node 20+, pnpm and Docker Desktop.
 
 ```bash
-pnpm install                       # install both packages
-cp server/.env.example server/.env # then fill in the provider keys
-cp client/.env.example client/.env.local
-pnpm db:up                         # Postgres in Docker
-pnpm --filter server db:generate
-pnpm dev                           # client :3000, server :4000
+pnpm install
+cp server/.env.example server/.env        # fill in Clerk and Gemini at minimum
+cp client/.env.example client/.env.local  # the Clerk publishable key
+pnpm db:up                                # Postgres in Docker, on :55432
+pnpm --filter server db:deploy            # apply migrations
+pnpm --filter server db:seed              # load the curriculum
+pnpm dev                                  # client :3000, server :4000
 ```
 
-`curl http://localhost:4000/health` should answer. Root scripts: `pnpm dev`, `pnpm build`, `pnpm typecheck`, `pnpm db:up`, `pnpm db:reset`, `pnpm db:studio`.
+`curl http://localhost:4000/ready` should answer `{"status":"ready"}`. If the
+server refuses to start it will name the environment variable it is unhappy
+with; that is deliberate, and cheaper than finding out per request.
+
+Root scripts: `pnpm dev`, `pnpm build`, `pnpm typecheck`, `pnpm lint`,
+`pnpm test`, `pnpm db:up`, `pnpm db:reset`, `pnpm db:studio`.
+
+Deployment, secrets and key rotation: [`docs/ops/deployment.md`](./docs/ops/deployment.md).
 
 ## Client and server are separate
 
@@ -48,7 +56,9 @@ docs/
 ├── architecture/
 │   ├── session-engine.md    ★ data model, scoring, scheduling, mastery
 │   ├── learning-engine.md   the eight pedagogical stages behind a session
-│   └── integrations.md      which hackathon API does what, and how to wire it
+│   └── integrations.md      which provider does what, and how it is wired
+├── ops/
+│   └── deployment.md        Render, secrets, migrations, key rotation
 ├── curriculum/
 │   ├── vocabulary.md        V001–V030, 201 sub-competencies
 │   ├── grammar.md           G001–G028
@@ -102,34 +112,38 @@ Project skills live in `.cursor/skills/`. Three fire automatically when the work
 | `voice-pipeline` | When touching audio, transcription or speech output. Holds the API constants that break silently |
 | `/demo-rehearsal` | Typed by hand, three hours before the pitch |
 
-## Build order
+## The four dimensions
 
-From [`docs/architecture/integrations.md`](./docs/architecture/integrations.md). Steps 1 to 7 are the demo; everything after is upside.
+**Grammar, Vocabulary, Fluency and Sentence Structure.** That is the whole list,
+and it is a closed one — a Profile Dimension is not something a feature adds.
+Sentence Structure replaced Pronunciation because scoring phonemes needs a model
+this stack does not have, and a dimension that cannot be measured is a number
+that gets asserted. See [`docs/adr/0008`](./docs/adr/).
 
-1. Seed the content tables from `content-pack-a2-d01.md`.
-2. Wispr Flow streaming into a live transcript — proves voice input works.
-3. fal Whisper word-level analysis writing real metrics — proves the numbers are real.
-4. Conversation director with mission context, English TTS from fal — proves it coaches.
-5. Amharic correction line through Addis AI TTS — the emotional beat.
-6. Retry loop and the before/after delta screen — proves measurable improvement.
-7. Scheduler: retrievability decay and the template-variety penalty — produces the Day Three moment.
+## Providers
 
-Step 7 is roughly forty lines against data the earlier steps already write, and it demonstrates more architecture than anything else. Do not let it get cut.
+| Job | Runs on | If it is unavailable |
+| --- | --- | --- |
+| Speech to text | Web Speech API, in the browser | Whisper, server-side, when a turn is worth the round trip |
+| Text to speech | Web Speech API, in the browser | ElevenLabs, server-side, for devices with poor built-in voices |
+| Conversation director | Gemini Flash | A scripted fallback director, so a session never dead-ends |
+| Grading | Gemini Pro | The turn is stored ungraded and retried |
+
+Speech runs in the browser by default. That is a deliberate choice rather than a
+cost saving: it removes a round trip from the middle of a conversation, and the
+latency of a coach that pauses for a second before every reply is the difference
+between practising and waiting. Every outbound provider call is wrapped in a
+timeout, bounded retries and a circuit breaker.
 
 ## Current state
 
-Design is complete and internally consistent. **No code has been written yet.**
-
-A grilling session found three real defects — retries inflating `evidence_count` into the promotion floor, placement that could never return a band above the one it probed, and utterance data stored on competency rows — plus the fact that the "30-day plan" the design described could never have been built. Changelog entries 13 to 20 in `session-engine.md` record the fixes; the five decisions carrying real trade-offs are in [`docs/adr/`](./docs/adr/).
-
-**Content authored for the demo.** Fifteen `A2-D01` competency records with success criteria, common errors and Amharic L1 risk, plus full descriptors for `EX001`, `EX007` and `EX018`. `A2-D01` carries requirement roles. All 201 vocabulary sub-competencies have IDs and all 96 competencies have descriptions.
-
-**Still to author:** generation metadata for every sub-competency outside the A2-D01 pack, descriptors for the remaining 15 templates, requirement roles on the other 29 domains, the thresholds that turn a delivery metric into an `observed`, and the `hospitality` Life Path skin for the Samuel half of the demo.
+The backend and the client are both built and wired to each other. Migrations,
+seed data, Docker image and Render blueprint are in the repository, and
+`pnpm typecheck && pnpm lint && pnpm test` is green across both packages.
 
 **Known limitations, deliberately accepted:**
 
-- `P001`–`P003` (segmental pronunciation) are `observable: false`. No API in the stack scores phonemes, so the engine never targets them. `P001.08` is the exception: the Amharic confusion set is probed with minimal pairs and judged by the transcriber.
+- `P001`–`P003` (segmental pronunciation) are `observable: false`. No model in the stack scores phonemes, so the engine never targets them.
 - A1 is out of scope. Every library starts at A2.
 - Because only A2 content exists, placement puts every learner at A2 — by a mechanism that will place higher once B1 content is authored.
-
-**The one assumption to test first:** whether Addis AI's `addis-1-alef` can hold an English coaching dialogue, or whether it is Amharic and Afan Oromo only in practice. That decides who runs the conversation director. Test it in their playground before building anything on top of it.
+- Content beyond the A2-D01 pack is unauthored: descriptors for the remaining templates, requirement roles on the other 29 domains, and the `hospitality` Life Path skin.

@@ -1,38 +1,33 @@
 "use client";
 
-import { ChoiceButton } from "@/components/onboarding/choice-button";
-import { OnboardingShell } from "@/components/onboarding/onboarding-shell";
+import { ChoiceStep } from "@/components/onboarding/choice-step";
 import { updateDraft, useOnboardingDraft } from "@/hooks/use-onboarding-draft";
 import { dailyBudgets } from "@/lib/onboarding";
 
 import type { StepProps } from "./types";
 
-/** Selects the LOAD_TABLE row: how many activities a mission holds. */
+/** Selects the LOAD_TABLE row: how many activities Today's Mission holds. */
 export function StepTime({ index, count, onNext, onBack }: StepProps) {
   const { dailyMinutes } = useOnboardingDraft();
 
   return (
-    <OnboardingShell
+    <ChoiceStep
       stepKey="time"
       stepIndex={index}
       stepCount={count}
       question="How long can you speak each day?"
-      hint="Be honest rather than ambitious — a mission you finish beats one you abandon."
-      onBack={onBack}
+      hint="Be honest rather than ambitious. Finishing a short Today's Mission beats abandoning a long one."
+      groupLabel="Daily practice time"
+      requirement="Choose how long you can practise to continue."
+      options={dailyBudgets.map((budget) => ({
+        value: budget.minutes,
+        label: budget.label,
+        detail: budget.detail,
+      }))}
+      value={dailyMinutes}
+      onChange={(value) => updateDraft({ dailyMinutes: value })}
       onNext={onNext}
-      canAdvance={dailyMinutes !== null}
-    >
-      <div role="radiogroup" aria-label="Daily practice time" className="space-y-2">
-        {dailyBudgets.map((budget) => (
-          <ChoiceButton
-            key={budget.minutes}
-            selected={dailyMinutes === budget.minutes}
-            onSelect={() => updateDraft({ dailyMinutes: budget.minutes })}
-            label={budget.label}
-            detail={budget.detail}
-          />
-        ))}
-      </div>
-    </OnboardingShell>
+      onBack={onBack}
+    />
   );
 }

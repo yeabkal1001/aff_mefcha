@@ -12,11 +12,12 @@ import {
   type StimulusSpec,
 } from "@/components/session/stimulus";
 import { VoiceOrb } from "@/components/session/voice-orb";
-import type { Correction, SessionState } from "@/lib/mock-data";
+import type { Correction } from "@/lib/api/schemas";
+import type { SessionPhase } from "@/lib/session/phase";
 import { cn } from "@/lib/utils";
 
 interface ExerciseStageProps {
-  state: SessionState;
+  state: SessionPhase;
   /** Absent for templates that give the learner nothing to work from. */
   stimulus?: StimulusSpec;
   /** What the coach is saying, or the opening line while idle. */
@@ -54,13 +55,16 @@ export function ExerciseStage({
     <div
       className={cn(
         "flex min-h-0 flex-col items-center justify-center",
-        stimulus ? "gap-7" : "gap-24",
+        stimulus ? "gap-5 sm:gap-7" : "gap-14 sm:gap-24",
       )}
     >
+      {/* The width is a preference, not a promise: `max-w-full` caps it at
+          whatever the column actually is, so a 460px stimulus renders at 328px
+          on a 360px phone instead of pushing the page sideways. */}
       {stimulus && (
         <motion.div
           layout
-          className="flex flex-col items-center gap-3"
+          className="flex max-w-full flex-col items-center gap-3"
           animate={{
             width: showingCorrection
               ? compactStimulusWidth(stimulus)
@@ -76,7 +80,7 @@ export function ExerciseStage({
             {!showingCorrection && (
               <motion.p
                 exit={{ opacity: 0, height: 0 }}
-                className="w-[22rem] text-center text-[0.8125rem] leading-relaxed text-muted-foreground"
+                className="w-full max-w-[22rem] text-center text-ui leading-relaxed text-balance text-muted-foreground"
               >
                 {stimulus.instruction}
               </motion.p>
@@ -85,7 +89,10 @@ export function ExerciseStage({
         </motion.div>
       )}
 
-      <VoiceOrb state={state} className={stimulus ? "[--orb-size:6.5rem]" : undefined} />
+      <VoiceOrb
+        state={state}
+        className={stimulus ? "[--orb-size:clamp(4.5rem,16vw,6.5rem)]" : undefined}
+      />
 
       {/* Fixed height so swapping between the three states does not shift the
           orb above them. */}
@@ -95,7 +102,12 @@ export function ExerciseStage({
             <LiveTranscript key="transcript" text={transcript} />
           ) : correction ? (
             <CorrectionCard
-              key={correction.id}
+              // Keyed on the content, because corrections have no id of their
+              // own — they are derived from a turn, not stored as rows the
+              // client sees. Two consecutive corrections of the same span in
+              // the same sentence would not re-animate, which is correct: it
+              // is the same correction.
+              key={`${correction.competencyId}:${correction.errorSpan}`}
               correction={correction}
               onDismiss={onDismissCorrection}
             />

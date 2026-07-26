@@ -1,124 +1,124 @@
 "use client";
 
-import { PanelLeft } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 
+import { useShell } from "@/components/shell/shell-context";
 import { BrandMark } from "@/components/sidebar/brand-mark";
-import { ChatHistory } from "@/components/sidebar/chat-history";
-import { SidebarNav } from "@/components/sidebar/sidebar-nav";
-import { TipCard } from "@/components/sidebar/tip-card";
-import { TodaysProgress } from "@/components/sidebar/todays-progress";
+import {
+  SidebarContent,
+  type SidebarData,
+} from "@/components/sidebar/sidebar-content";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useOnboardingDraft } from "@/hooks/use-onboarding-draft";
-import { coachTip, learner } from "@/lib/mock-data";
 
-interface AppSidebarProps {
-  collapsed: boolean;
-  onToggle: () => void;
-  speakingMinutes: number;
-  corrections: number;
-}
-
-export function AppSidebar({
-  collapsed,
-  onToggle,
-  speakingMinutes,
-  corrections,
-}: AppSidebarProps) {
-  const { name } = useOnboardingDraft();
+/**
+ * Three presentations of one sidebar, chosen by viewport rather than by state.
+ *
+ * Below `md` there is no room for a 216px column beside a stage built around a
+ * centred orb, so the sidebar becomes a drawer and the brand mark becomes its
+ * trigger. At `md` and up it is an inline panel that collapses to the same
+ * brand-mark rail — which is why the rail is one component and not two.
+ */
+export function AppSidebar({ data }: { data: SidebarData }) {
+  const { collapsed, toggleCollapsed, mobileOpen, setMobileOpen } = useShell();
 
   return (
-    <AnimatePresence initial={false} mode="popLayout">
-      {collapsed ? (
-        <motion.div
-          key="rail"
-          initial={{ opacity: 0, scale: 0.85 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.85 }}
-          transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-          className="relative z-10 p-2.5"
+    <>
+      {/* Phones and small tablets: a trigger in the corner, and a drawer.
+          Positioned out of flow so the sidebar costs no horizontal space on
+          the viewport that has the least of it. */}
+      <div className="absolute left-0 top-0 z-20 p-2.5 md:hidden">
+        <SidebarRailButton
+          label="Open menu"
+          onClick={() => setMobileOpen(true)}
+          expanded={mobileOpen}
+        />
+      </div>
+
+      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+        <SheetContent
+          side="left"
+          showCloseButton={false}
+          className="flex w-[17rem] max-w-[85vw] flex-col gap-0 bg-sidebar p-2.5"
         >
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                onClick={onToggle}
-                aria-label="Open sidebar"
-                aria-expanded={false}
-                className="rounded-[0.5rem] transition-transform duration-200 hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
-              >
-                <BrandMark className="size-8" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={8}>
-              Open sidebar
-            </TooltipContent>
-          </Tooltip>
-        </motion.div>
-      ) : (
-        <motion.aside
-          key="panel"
-          initial={{ opacity: 0, x: -18 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -18 }}
-          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-          className="surface-panel relative z-10 m-2.5 flex w-[13.5rem] shrink-0 flex-col rounded-2xl p-2.5 shadow-[0_20px_60px_-40px_oklch(0.4_0.06_280/45%)]"
+          <SheetTitle className="sr-only">Menu</SheetTitle>
+          <SheetDescription className="sr-only">
+            Navigation, chat history and today&apos;s progress.
+          </SheetDescription>
+          <SidebarContent data={data} />
+        </SheetContent>
+      </Sheet>
+
+      {/* Desktop: inline, collapsible. */}
+      <div className="hidden md:contents">
+        <AnimatePresence initial={false} mode="popLayout">
+          {collapsed ? (
+            <motion.div
+              key="rail"
+              initial={{ opacity: 0, scale: 0.85 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.85 }}
+              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+              className="relative z-10 p-2.5"
+            >
+              <SidebarRailButton
+                label="Open sidebar"
+                onClick={toggleCollapsed}
+                expanded={false}
+              />
+            </motion.div>
+          ) : (
+            <motion.aside
+              key="panel"
+              initial={{ opacity: 0, x: -18 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -18 }}
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              className="surface-panel relative z-10 m-2.5 flex w-[13.5rem] shrink-0 flex-col rounded-2xl p-2.5 shadow-panel"
+            >
+              <SidebarContent data={data} onCollapse={toggleCollapsed} />
+            </motion.aside>
+          )}
+        </AnimatePresence>
+      </div>
+    </>
+  );
+}
+
+function SidebarRailButton({
+  label,
+  onClick,
+  expanded,
+}: {
+  label: string;
+  onClick: () => void;
+  expanded: boolean;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          onClick={onClick}
+          aria-label={label}
+          aria-expanded={expanded}
+          className="rounded-lg transition-transform duration-200 hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
         >
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex min-w-0 items-center gap-2.5">
-              <BrandMark />
-              <span className="min-w-0">
-                <span className="block truncate text-[0.8125rem] font-semibold leading-tight text-foreground">
-                  {name || learner.name}
-                </span>
-                <span className="block text-[0.6875rem] leading-tight text-muted-foreground">
-                  {learner.plan}
-                </span>
-              </span>
-            </div>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  onClick={onToggle}
-                  aria-label="Collapse sidebar"
-                  aria-expanded
-                  className="rounded-md p-0.5 text-muted-foreground/70 transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                >
-                  <PanelLeft className="size-4" strokeWidth={1.75} />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="right" sideOffset={8}>
-                Collapse sidebar
-              </TooltipContent>
-            </Tooltip>
-          </div>
-
-          <div className="mt-3.5 shrink-0">
-            <SidebarNav />
-          </div>
-
-          {/* The history is the elastic region: it absorbs the leftover space
-              and scrolls if the list outgrows it, so the cards below always
-              stay pinned inside the panel. */}
-          <div className="mt-3.5 min-h-0 flex-1 overflow-y-auto">
-            <ChatHistory />
-          </div>
-
-          <div className="mt-3 shrink-0 space-y-2">
-            <TodaysProgress
-              speakingMinutes={speakingMinutes}
-              corrections={corrections}
-            />
-            <TipCard tip={coachTip} />
-          </div>
-        </motion.aside>
-      )}
-    </AnimatePresence>
+          <BrandMark className="size-8" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="right" sideOffset={8}>
+        {label}
+      </TooltipContent>
+    </Tooltip>
   );
 }
