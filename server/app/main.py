@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.clock import now
 from app.config import get_settings
-from app.routes import day_plans, learners, sessions
+from app.routes import audio, day_plans, learners, sessions
 
 settings = get_settings()
 
@@ -20,6 +20,7 @@ app.add_middleware(
 app.include_router(learners.router)
 app.include_router(day_plans.router)
 app.include_router(sessions.router)
+app.include_router(audio.router)
 
 
 @app.get("/health")

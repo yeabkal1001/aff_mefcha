@@ -3,13 +3,20 @@
 import { motion } from "motion/react";
 
 import { OnboardingShell } from "@/components/onboarding/onboarding-shell";
+import { useCommunicationProfile } from "@/hooks/use-communication-profile";
 import { useOnboardingDraft } from "@/hooks/use-onboarding-draft";
-import { openingProfile, type Dimension } from "@/lib/mock-data";
+import type { DimensionResponse } from "@/lib/api";
 
 import type { StepProps } from "./types";
 
 /**
  * The profile, revealed.
+ *
+ * These numbers come from the server, computed from `learner_competency` rows
+ * at read time. Mounting this step is what creates the learner, so it is also
+ * the first screen that can fail — there is no cached shape to fall back on,
+ * and inventing one would put a fabricated score on the screen the pitch rests
+ * on.
  *
  * Two honesty rules from the docs are load-bearing here. Every value rests on
  * `evidence_count = 1`, so each bar is drawn with an uncertainty band rather
@@ -17,7 +24,13 @@ import type { StepProps } from "./types";
  * assessed" — never 0%, which would be a claim we have not earned.
  */
 export function StepProfile({ index, count, onNext }: StepProps) {
-  const { name, cefr } = useOnboardingDraft();
+  const { name } = useOnboardingDraft();
+  const profile = useCommunicationProfile();
+
+  const hint =
+    profile.status === "ready"
+      ? `Measured from four minutes of speech — you were never asked to guess. Level ${profile.cefr}.`
+      : "Measured from four minutes of speech — you were never asked to guess.";
 
   return (
     <OnboardingShell
@@ -25,40 +38,66 @@ export function StepProfile({ index, count, onNext }: StepProps) {
       stepIndex={index}
       stepCount={count}
       question={`Here's where you're starting, ${name || "friend"}.`}
-      hint={`Measured from four minutes of speech — you were never asked to guess. Level ${cefr ?? "A2"}.`}
+      hint={hint}
       onNext={onNext}
       nextLabel="Start my first mission"
+      canAdvance={profile.status === "ready"}
       wide
     >
-      <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
-        {openingProfile.map((dimension, i) => (
-          <DimensionRow key={dimension.id} dimension={dimension} order={i} />
-        ))}
-      </div>
+      {profile.status === "loading" && (
+        <p className="text-center text-[0.8125rem] text-muted-foreground">
+          Working out where you are…
+        </p>
+      )}
 
-      <p className="mt-7 text-center text-[0.75rem] leading-relaxed text-muted-foreground">
-        These are estimates, and the coach knows it. They will move a long way
-        in your first week, because every session adds evidence.
-      </p>
+      {profile.status === "error" && (
+        <p className="text-center text-[0.8125rem] leading-relaxed text-muted-foreground">
+          Your coach could not be reached, so there is nothing honest to show
+          here yet.
+          <span className="mt-1 block text-[0.75rem] text-muted-foreground/70">
+            {profile.message}
+          </span>
+        </p>
+      )}
+
+      {profile.status === "ready" && (
+        <>
+          <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+            {profile.dimensions.map((dimension, i) => (
+              <DimensionRow key={dimension.id} dimension={dimension} order={i} />
+            ))}
+          </div>
+
+          <p className="mt-7 text-center text-[0.75rem] leading-relaxed text-muted-foreground">
+            These are estimates, and the coach knows it. They will move a long way
+            in your first week, because every session adds evidence.
+          </p>
+        </>
+      )}
     </OnboardingShell>
   );
 }
+
+/** How far a bar could still move. A single piece of evidence buys little. */
+const WIDE_BAND = 0.12;
+const NARROW_BAND = 0.05;
 
 function DimensionRow({
   dimension,
   order,
 }: {
-  dimension: Dimension;
+  dimension: DimensionResponse;
   order: number;
 }) {
   const assessed = dimension.value !== null;
   const value = dimension.value ?? 0;
+  const band = dimension.wide_uncertainty ? WIDE_BAND : NARROW_BAND;
 
   return (
     <div>
       <div className="flex items-baseline justify-between gap-2">
         <span className="text-[0.8125rem] text-foreground/80">
-          {dimension.label}
+          {dimension.name}
         </span>
         <span
           className={
@@ -78,7 +117,7 @@ function DimensionRow({
             <motion.div
               className="absolute inset-y-0 left-0 rounded-full bg-foreground/15"
               initial={{ width: 0 }}
-              animate={{ width: `${Math.min(1, value + 0.12) * 100}%` }}
+              animate={{ width: `${Math.min(1, value + band) * 100}%` }}
               transition={{
                 duration: 0.9,
                 delay: 0.1 + order * 0.06,

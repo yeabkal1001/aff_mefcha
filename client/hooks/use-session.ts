@@ -3,60 +3,71 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
-  coachLines,
-  corrections,
-  dailyProgress,
-  type Correction,
-  type SessionState,
-} from "@/lib/mock-data";
+  ApiError,
+  finaliseSession,
+  getCoachLine,
+  getCorrection,
+  postTurn,
+  speak,
+  transcribe,
+  type SessionOutcomeResponse,
+  type TurnResponse,
+} from "@/lib/api";
+import { LiveSpeech } from "@/lib/live-speech";
+import type { Correction, SessionState } from "@/lib/mock-data";
+import { TurnRecorder } from "@/lib/recorder";
 
-/** How long the learner gets the floor before the coach evaluates the turn. */
-const LISTEN_MS = 7000;
-/** Silence before the first word lands, so the turn does not start mid-sentence. */
-const TRANSCRIPT_LEAD_MS = 900;
-/** Silence after the last word, standing in for end-of-speech detection. */
-const TRANSCRIPT_TAIL_MS = 700;
-/** How long the coach appears to think before the correction lands. */
-const THINK_MS = 1200;
-/** How long the coach holds the floor. Long enough to read the correction. */
-const SPEAK_MS = 6000;
+/** Hard ceiling so a forgotten mic does not burn Whisper credits forever. */
+const MAX_LISTEN_MS = 45_000;
+
+export interface UseSessionOptions {
+  sessionId: string | null;
+  /** Spoken once when the session is ready, before the learner has the floor. */
+  openingLine: string;
+}
 
 /**
- * The conversation loop, faked on timers.
+ * The real conversation loop.
  *
- * Real sessions will be driven by the server: the turn ends when transcription
- * detects silence, and the correction arrives from the evaluator. Until then
- * the same four states cycle on a clock, which is enough to build and demo the
- * entire UI. Swapping the timers for socket events should not touch a
- * component.
+ * Tap to start recording. The on-screen caption is the browser's SpeechRecognition
+ * (display only). Tap again to stop — the recording goes to Whisper for the graded
+ * track with word timestamps, then to the evaluator, then the coach speaks.
  */
-export function useSession() {
+export function useSession({ sessionId, openingLine }: UseSessionOptions) {
   const [state, setState] = useState<SessionState>("idle");
   const [correction, setCorrection] = useState<Correction | null>(null);
-  const [coachLine, setCoachLine] = useState(coachLines[0]);
-  const [speakingSeconds, setSpeakingSeconds] = useState(
-    dailyProgress.speakingMinutes * 60,
-  );
-  const [correctionCount, setCorrectionCount] = useState(
-    dailyProgress.corrections,
-  );
+  const [coachLine, setCoachLine] = useState(openingLine);
   const [transcript, setTranscript] = useState("");
+  const [speakingSeconds, setSpeakingSeconds] = useState(0);
+  const [correctionCount, setCorrectionCount] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [outcome, setOutcome] = useState<SessionOutcomeResponse | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  const turnRef = useRef(0);
-  const timersRef = useRef<number[]>([]);
+  const recorderRef = useRef<TurnRecorder | null>(null);
+  const liveRef = useRef<LiveSpeech | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const scaffoldRef = useRef(0);
+  const listenTimerRef = useRef<number | null>(null);
+  const sessionIdRef = useRef(sessionId);
+  sessionIdRef.current = sessionId;
 
-  const clearTimers = useCallback(() => {
-    timersRef.current.forEach((id) => window.clearTimeout(id));
-    timersRef.current = [];
+  useEffect(() => {
+    setCoachLine(openingLine);
+  }, [openingLine]);
+
+  useEffect(() => {
+    return () => {
+      liveRef.current?.stop();
+      void recorderRef.current?.stop();
+      if (listenTimerRef.current) window.clearTimeout(listenTimerRef.current);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
   }, []);
 
-  const after = useCallback((ms: number, run: () => void) => {
-    timersRef.current.push(window.setTimeout(run, ms));
-  }, []);
-
-  useEffect(() => clearTimers, [clearTimers]);
-
-  // Speaking time only accrues while the learner actually has the floor.
   useEffect(() => {
     if (state !== "listening") return;
     const id = window.setInterval(
@@ -66,74 +77,215 @@ export function useSession() {
     return () => window.clearInterval(id);
   }, [state]);
 
-  // The loop is recursive — the coach finishing its turn starts the next one.
-  // Bouncing through a ref keeps that legal without a stale closure.
-  const runTurnRef = useRef<() => void>(() => {});
-
-  const runTurn = useCallback(() => {
-    setState("listening");
-    setTranscript("");
-
-    // The learner "says" the sentence the coach is about to correct, revealed a
-    // word at a time. Driving both from the same string is the point: the words
-    // on screen during the turn are the words marked up a moment later, so the
-    // demo shows a correction landing on speech rather than on a coincidence.
-    const words = corrections[turnRef.current % corrections.length].said.split(" ");
-    const gap = (LISTEN_MS - TRANSCRIPT_LEAD_MS - TRANSCRIPT_TAIL_MS) / words.length;
-
-    words.forEach((word, i) => {
-      after(TRANSCRIPT_LEAD_MS + gap * i, () =>
-        setTranscript((text) => (text ? `${text} ${word}` : word)),
-      );
-    });
-
-    after(LISTEN_MS, () => {
-      setState("thinking");
-
-      after(THINK_MS, () => {
-        const turn = turnRef.current;
-        turnRef.current = turn + 1;
-
-        setCorrection(corrections[turn % corrections.length]);
-        setCorrectionCount((count) => count + 1);
-        setCoachLine(coachLines[(turn + 1) % coachLines.length]);
-        setState("speaking");
-
-        after(SPEAK_MS, () => runTurnRef.current());
+  const playUrl = useCallback(async (url: string) => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      URL.revokeObjectURL(audioRef.current.src);
+    }
+    const audio = new Audio(url);
+    audioRef.current = audio;
+    try {
+      await audio.play();
+      await new Promise<void>((resolve) => {
+        audio.onended = () => resolve();
+        audio.onerror = () => resolve();
       });
-    });
-  }, [after]);
+    } catch {
+      // Autoplay blocked or decode failed — the text is already on screen.
+    }
+  }, []);
 
-  useEffect(() => {
-    runTurnRef.current = runTurn;
-  }, [runTurn]);
-
-  /** Hand the floor to the learner, or take it back. */
-  const toggleListening = useCallback(() => {
-    clearTimers();
-
-    if (state === "idle") {
-      runTurn();
+  const stopListening = useCallback(async () => {
+    if (busy) return;
+    const id = sessionIdRef.current;
+    if (!id) {
+      setError("no session loaded yet");
       return;
     }
 
-    if (state === "listening") {
+    setBusy(true);
+    setError(null);
+    if (listenTimerRef.current) {
+      window.clearTimeout(listenTimerRef.current);
+      listenTimerRef.current = null;
+    }
+    liveRef.current?.stop();
+    setState("thinking");
+
+    // Capture the live caption before we clear anything — if Whisper's GPUs
+    // are down and Gemini also fails, we still have something to grade.
+    const liveCaption = transcript.trim();
+
+    try {
+      const blob = (await recorderRef.current?.stop()) ?? new Blob();
+      recorderRef.current = null;
+
+      if (blob.size < 256 && !liveCaption) {
+        setError("I did not catch any audio — try again a little louder.");
+        setState("idle");
+        return;
+      }
+
+      // Graded track. Word timestamps are what Confidence and Fluency are measured from.
+      let gradedText = liveCaption;
+      let gradedWords: { text: string; start: number; end: number }[] = [];
+
+      if (blob.size >= 256) {
+        try {
+          const graded = await transcribe(blob, "en");
+          if (graded.text.trim()) {
+            gradedText = graded.text.trim();
+            gradedWords = graded.words;
+          }
+        } catch (err) {
+          if (!liveCaption) throw err;
+          // PROP: live caption only — metrics will be empty this turn, but
+          // grammar judgement still runs off the verbatim text.
+          setError(
+            "Whisper was unavailable, so I graded from the live caption instead.",
+          );
+        }
+      }
+
+      if (!gradedText) {
+        setError("I did not catch any speech — try again.");
+        setState("idle");
+        return;
+      }
+
+      setTranscript(gradedText);
+
+      const turn: TurnResponse = await postTurn(id, {
+        transcript_verbatim: gradedText,
+        transcript_clean: gradedText,
+        words: gradedWords,
+        scaffold_level: scaffoldRef.current,
+      });
+
+      const hint = turn.corrections[0] ?? null;
+      let nextCorrection: Correction | null = null;
+
+      if (hint) {
+        let why = `Try saying "${hint.right}" instead of "${hint.wrong}".`;
+        try {
+          const amharic = await getCorrection(hint.right, hint.wrong);
+          if (amharic.amharic) why = amharic.amharic;
+        } catch {
+          // English why is enough to keep the card honest.
+        }
+
+        nextCorrection = {
+          id: `${turn.turn_id}-${hint.tag}`,
+          said: gradedText,
+          errorSpan: findSpan(gradedText, hint.wrong) ?? hint.wrong,
+          corrected: hint.right,
+          why,
+        };
+        setCorrection(nextCorrection);
+        setCorrectionCount((count) => count + 1);
+      } else {
+        setCorrection(null);
+      }
+
+      if (turn.retry_needed.length > 0 && !turn.retries_exhausted) {
+        scaffoldRef.current = Math.min(scaffoldRef.current + 1, 2);
+      }
+
+      let line =
+        turn.scaffold_prompt ??
+        (hint
+          ? `Nice try — say it again: "${hint.right}".`
+          : "Good. Tell me a little more.");
+
+      try {
+        const coach = await getCoachLine(id, gradedText);
+        if (coach.english?.trim()) line = coach.english.trim();
+      } catch {
+        // Scaffold / fallback line already set.
+      }
+
+      setCoachLine(line);
+      setState("speaking");
+
+      try {
+        const url = await speak(line, "en");
+        await playUrl(url);
+      } catch {
+        // Text is already visible.
+      }
+
       setState("idle");
-      return;
+    } catch (err) {
+      setState("idle");
+      setError(
+        err instanceof ApiError
+          ? err.detail
+          : err instanceof Error
+            ? err.message
+            : "something went wrong on that turn",
+      );
+    } finally {
+      setBusy(false);
     }
+  }, [busy, playUrl]);
 
-    // Interrupting the coach mid-sentence hands the floor straight back.
-    runTurn();
-  }, [clearTimers, runTurn, state]);
-
-  const endSession = useCallback(() => {
-    clearTimers();
-    turnRef.current = 0;
+  const startListening = useCallback(async () => {
+    if (busy || !sessionIdRef.current) return;
+    setError(null);
     setCorrection(null);
     setTranscript("");
-    setCoachLine(coachLines[0]);
+
+    try {
+      const recorder = new TurnRecorder();
+      await recorder.start();
+      recorderRef.current = recorder;
+
+      const live = new LiveSpeech((text) => setTranscript(text));
+      liveRef.current = live;
+      live.start("en-US");
+
+      setState("listening");
+      listenTimerRef.current = window.setTimeout(() => {
+        void stopListening();
+      }, MAX_LISTEN_MS);
+    } catch {
+      setError("Microphone access is needed to practise. Allow it and try again.");
+      setState("idle");
+    }
+  }, [busy, stopListening]);
+
+  const toggleListening = useCallback(() => {
+    if (busy) return;
+    if (state === "listening") {
+      void stopListening();
+      return;
+    }
+    if (state === "idle" || state === "speaking") {
+      void startListening();
+    }
+  }, [busy, startListening, state, stopListening]);
+
+  const endSession = useCallback(async () => {
+    liveRef.current?.stop();
+    if (listenTimerRef.current) window.clearTimeout(listenTimerRef.current);
+    await recorderRef.current?.stop();
+    recorderRef.current = null;
     setState("idle");
-  }, [clearTimers]);
+    setCorrection(null);
+    setTranscript("");
+
+    const id = sessionIdRef.current;
+    if (!id) return;
+    try {
+      setOutcome(await finaliseSession(id));
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.detail
+          : "could not save the session",
+      );
+    }
+  }, []);
 
   const dismissCorrection = useCallback(() => setCorrection(null), []);
 
@@ -141,13 +293,33 @@ export function useSession() {
     state,
     correction,
     coachLine,
-    /** The Wispr Flow track, as far as it has got this turn. */
     transcript,
-    /** Whole minutes spoken today, for the progress card. */
     speakingMinutes: Math.floor(speakingSeconds / 60),
     correctionCount,
+    error,
+    busy,
+    outcome,
     toggleListening,
     endSession,
     dismissCorrection,
   };
+}
+
+/** Prefer a span that actually appears in what was said; fall back to the authored wrong. */
+function findSpan(said: string, wrong: string): string | null {
+  if (!wrong) return null;
+  if (said.toLowerCase().includes(wrong.toLowerCase())) {
+    const at = said.toLowerCase().indexOf(wrong.toLowerCase());
+    return said.slice(at, at + wrong.length);
+  }
+  // Authored forms are often full clauses; try the last few content words.
+  const words = wrong.split(/\s+/).filter(Boolean);
+  for (let n = Math.min(4, words.length); n >= 2; n--) {
+    const slice = words.slice(-n).join(" ");
+    if (said.toLowerCase().includes(slice.toLowerCase())) {
+      const at = said.toLowerCase().indexOf(slice.toLowerCase());
+      return said.slice(at, at + slice.length);
+    }
+  }
+  return null;
 }

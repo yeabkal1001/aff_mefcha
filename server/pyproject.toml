@@ -14,6 +14,8 @@ dependencies = [
     "python-dotenv>=1.0.1",
     "httpx>=0.28.1",
     "pyjwt>=2.10.1",
+    # Multipart parsing, which is how a recording reaches POST /audio/transcribe.
+    "python-multipart>=0.0.20",
 ]
 
 [dependency-groups]
@@ -43,7 +45,14 @@ select = ["E", "F", "I", "UP", "B"]
 # B008 forbids function calls in argument defaults, which is exactly how FastAPI
 # declares a dependency. `db: AsyncSession = Depends(get_db)` is the documented idiom
 # and the call is evaluated by the framework, not once at import.
-extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path", "fastapi.Body"]
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.Query",
+    "fastapi.Path",
+    "fastapi.Body",
+    "fastapi.File",
+    "fastapi.Form",
+]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

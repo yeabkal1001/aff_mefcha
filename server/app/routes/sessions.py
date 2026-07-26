@@ -1,13 +1,15 @@
 """Running one activity: speak, get judged, retry, reflect, record."""
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
 from app.engine.profile import read_profile
-from app.models import DayPlan, Session, Template
+from app.models import CompetencyError, DayPlan, Session, Template
 from app.routes.day_plans import serialise_session
 from app.schemas import (
+    CorrectionHint,
     DimensionResponse,
     JudgementResponse,
     MasteryUpdateResponse,
@@ -66,6 +68,42 @@ async def post_turn(
         rung = min(turn.scaffold_level, len(ladder) - 1) if ladder else -1
         scaffold_prompt = ladder[rung] if rung >= 0 else None
 
+    # Pull the authored wrong/right forms for every tag that fired, so the
+    # correction card can mark a span without inventing one.
+    tagged: list[tuple[str, str]] = []
+    for competency_id, judgement in graded.judgements.items():
+        for tag in judgement.error_tags:
+            tagged.append((competency_id, tag))
+
+    corrections: list[CorrectionHint] = []
+    if tagged:
+        tags = {tag for _, tag in tagged}
+        rows = list(
+            (
+                await db.scalars(
+                    select(CompetencyError).where(CompetencyError.tag.in_(tags))
+                )
+            ).all()
+        )
+        by_key = {(row.competency_id, row.tag): row for row in rows}
+        seen: set[tuple[str, str]] = set()
+        for competency_id, tag in tagged:
+            key = (competency_id, tag)
+            if key in seen:
+                continue
+            seen.add(key)
+            row = by_key.get(key)
+            if row is None:
+                continue
+            corrections.append(
+                CorrectionHint(
+                    competency_id=competency_id,
+                    tag=tag,
+                    wrong=row.wrong,
+                    right=row.right,
+                )
+            )
+
     return TurnResponse(
         turn_id=turn.id,
         metrics=turn.metrics_json or {},
@@ -83,6 +121,7 @@ async def post_turn(
         retry_needed=graded.retry_needed,
         retries_exhausted=graded.retries_exhausted,
         scaffold_prompt=scaffold_prompt,
+        corrections=corrections,
     )
 
 

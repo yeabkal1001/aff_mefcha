@@ -35,13 +35,24 @@ export interface LifePath {
   name: string;
   tagline: string;
   icon: LucideIcon;
-  /** Configured paths have an overlay behind them; planned ones do not. */
+  /**
+   * Configured paths have an overlay behind them; planned ones do not.
+   *
+   * "Behind them" now means a row in the server's `life_path` table —
+   * `learner_profile.life_path_id` is a foreign key, so onboarding fails
+   * outright for a path the server has never heard of. The seeded set is in
+   * `server/app/seed/paths.py`; keep this flag in step with it.
+   */
   live: boolean;
   /**
-   * The two Profile Dimensions this path supplies on top of the four fixed.
-   * Every member has to be reachable at the learner's band, which is why
-   * these are built from the A2 fluency competencies — F001 through F005,
-   * F007 and F020. See docs/adr/0006-*.md.
+   * The three Profile Dimensions this path supplies on top of the five fixed,
+   * making the dashboard's fixed eight slots. Every member has to be reachable
+   * at the learner's band, which is why these are built from the A2 fluency
+   * competencies. See docs/adr/0006-*.md.
+   *
+   * For a live path these must name the same bundles the server seeds in
+   * `server/app/seed/paths.py`, because that is what the reveal screen will
+   * actually draw.
    */
   dimensions: string[];
   /** Step 5 is conditioned on the chosen path. */
@@ -69,8 +80,7 @@ export const lifePaths: LifePath[] = [
     name: "Everyday English",
     tagline: "Conversations, plans, opinions — the English an ordinary week needs.",
     icon: MessagesSquare,
-    live: true,
-    isDefault: true,
+    live: false,
     dimensions: ["Everyday Conversation", "Telling Your Story"],
     fieldQuestion: "What do you talk about most?",
     fieldHint: "Your coach will build conversations around it.",
@@ -83,7 +93,8 @@ export const lifePaths: LifePath[] = [
     tagline: "Presentations, seminars, group projects, talking to professors.",
     icon: GraduationCap,
     live: true,
-    dimensions: ["Classroom Interaction", "Explaining Your Work"],
+    isDefault: true,
+    dimensions: ["Presentation", "Academic Discussion", "Classroom Interaction"],
     fieldQuestion: "What are you studying?",
     fieldHint: "Your coach will use your subject in every conversation.",
     fieldSuggestions: [
@@ -101,7 +112,7 @@ export const lifePaths: LifePath[] = [
     tagline: "Guests, reservations, complaints, and the interview to get there.",
     icon: ConciergeBell,
     live: true,
-    dimensions: ["Guest Interaction", "Complaint Handling"],
+    dimensions: ["Guest Interaction", "Complaint Handling", "Interview Readiness"],
     fieldQuestion: "What role are you aiming for?",
     fieldHint: "Your coach will rehearse the conversations that role needs.",
     fieldSuggestions: [
@@ -118,7 +129,7 @@ export const lifePaths: LifePath[] = [
     name: "Something else",
     tagline: "Tell your coach what you are preparing for, in your own words.",
     icon: PenLine,
-    live: true,
+    live: false,
     isCustom: true,
     dimensions: ["Everyday Conversation", "Telling Your Story"],
     fieldQuestion: "What are you preparing for?",

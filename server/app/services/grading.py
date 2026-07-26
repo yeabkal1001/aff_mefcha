@@ -13,6 +13,7 @@ with two retries reach the promotion floor, and would shrink alpha fastest for e
 the learners whose estimates most need to keep moving. See ADR 0003.
 """
 
+import logging
 from dataclasses import dataclass
 
 from sqlalchemy import select
@@ -38,6 +39,9 @@ from app.models import (
     TemplateMeasures,
     Turn,
 )
+from app.providers import ProviderError, gemini
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -110,13 +114,49 @@ async def record_turn(
     return turn
 
 
+async def model_judgements_for(
+    transcript_verbatim: str, competencies: list[Competency]
+) -> dict[str, Judgement]:
+    """Ask the analysing model to count what the authored patterns could not reach.
+
+    Returns `{}` on any provider failure rather than raising. The deterministic layer
+    has already produced a lower bound by this point, and losing the widened coverage
+    is a smaller harm than losing the turn — a demo where the network hiccups should
+    grade conservatively, not fail.
+    """
+    briefs = [
+        gemini.CompetencyBrief(
+            competency_id=c.id,
+            name=c.name,
+            description=c.success_criteria,
+            common_errors={e.tag: e.wrong for e in c.common_errors},
+        )
+        for c in competencies
+    ]
+    try:
+        return await gemini.judge(transcript_verbatim, briefs)
+    except ProviderError as exc:
+        logger.warning("model judging skipped: %s", exc)
+        return {}
+
+
 async def grade_turn(
-    db: AsyncSession, turn_id: str, *, model_judgements: dict[str, Judgement] | None = None
+    db: AsyncSession,
+    turn_id: str,
+    *,
+    model_judgements: dict[str, Judgement] | None = None,
+    use_model: bool = True,
 ) -> GradedTurn:
     """Judge one turn against the competencies its session targets.
 
     Untargeted competencies are not judged: a session says what it is looking at, and
     grading everything would produce evidence from templates that cannot observe it.
+
+    Two layers run: the authored `common_errors` patterns, then the analysing model
+    over the same targets. `merge` lets the model widen coverage but never lower an
+    authored match, which is what keeps the score reproducible. Pass explicit
+    `model_judgements` to supply the second layer yourself, or `use_model=False` to
+    grade deterministically only.
     """
     turn = await db.get(Turn, turn_id)
     if turn is None:
@@ -146,6 +186,11 @@ async def grade_turn(
         is_answer=template.interaction_mode == "dialogue",
     )
     judgements = merge(judgements, delivery)
+
+    if model_judgements is None and use_model and (turn.transcript_verbatim or "").strip():
+        model_judgements = await model_judgements_for(
+            turn.transcript_verbatim or "", competencies
+        )
     if model_judgements:
         judgements = merge(judgements, model_judgements)
 

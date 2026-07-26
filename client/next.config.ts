@@ -1,12 +1,16 @@
 import type { NextConfig } from "next";
-import path from "node:path";
 
 const nextConfig: NextConfig = {
-  // A stray package-lock.json in the home directory makes Turbopack infer the
-  // wrong root. Pin it to the pnpm workspace root, which is where the shared
-  // node_modules store these symlinks resolve into actually lives.
+  // A stray package-lock.json further up the tree — in the home directory, or at
+  // the repo root — makes Turbopack walk up and infer the wrong project root.
+  // This app's package.json and node_modules both live in this directory, so pin
+  // it here.
+  //
+  // `import.meta.dirname` rather than `__dirname`: Next compiles this config to
+  // an ES module, where `__dirname` does not exist and the failure surfaces as a
+  // confusing "Failed to load next.config.ts".
   turbopack: {
-    root: path.join(__dirname, ".."),
+    root: import.meta.dirname,
   },
 };
 

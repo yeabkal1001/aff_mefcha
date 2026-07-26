@@ -106,11 +106,47 @@ class TurnRequest(BaseModel):
     transcript_verbatim: str | None = None
     transcript_clean: str | None = None
 
-    # ElevenLabs Scribe `words`: {text, start, end, type}. Whisper-style
-    # {text, timestamp: [start, end]} is also accepted. Empty means no delivery
-    # evidence from this turn — not zero delivery.
+    # Whisper `words`: {text, start, end}, as returned by POST /audio/transcribe.
+    # Scribe-style {text, start, end, type} and {text, timestamp: [start, end]} are
+    # also accepted. Empty means no delivery evidence from this turn — not zero
+    # delivery.
     words: list[dict] = Field(default_factory=list)
     scaffold_level: int = 0
+
+
+class TranscriptionResponse(BaseModel):
+    """A recording, transcribed verbatim.
+
+    `words` is passed straight back in `TurnRequest.words`. Without the timings in it
+    there is nothing to measure pace, pauses or fillers from.
+    """
+
+    text: str
+    words: list[dict] = Field(default_factory=list)
+    language: str | None = None
+
+
+class CoachLineRequest(BaseModel):
+    """Text for the coach to say, or what the learner just said."""
+
+    text: str = ""
+    # "en" routes to Gemini; "am" and "om" route to Addis, which covers those only.
+    language: str = "en"
+
+
+class CoachLineResponse(BaseModel):
+    english: str
+    amharic: str | None = None
+    # The model sentence on its own, so the client can have the English voice read it
+    # rather than sending English words through Amharic TTS.
+    model_sentence: str | None = None
+
+
+class CorrectionAudioRequest(BaseModel):
+    """One correction, on its way to being explained in Amharic."""
+
+    wrong: str | None = None
+    right: str
 
 
 class JudgementResponse(BaseModel):
@@ -123,6 +159,20 @@ class JudgementResponse(BaseModel):
     source: str
 
 
+class CorrectionHint(BaseModel):
+    """One authored error that fired on this turn, ready for the correction card.
+
+    `wrong` and `right` come from `competency_error`, so the card can mark the
+    span without guessing. The Amharic explanation is fetched separately through
+    `/audio/correction` — this payload is English only.
+    """
+
+    competency_id: str
+    tag: str
+    wrong: str
+    right: str
+
+
 class TurnResponse(BaseModel):
     turn_id: str
     metrics: dict
@@ -130,6 +180,9 @@ class TurnResponse(BaseModel):
     retry_needed: list[str]
     retries_exhausted: bool
     scaffold_prompt: str | None
+    # The first authored error that matched, if any. Empty means the turn was
+    # clean or the model flagged something without an authored pattern.
+    corrections: list[CorrectionHint] = []
 
 
 class MasteryUpdateResponse(BaseModel):
